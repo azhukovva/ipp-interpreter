@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'name' => '__root__',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '9f49587bc3fcee844a086d5d9346e011a55e0dd0',
+        'type' => 'library',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => true,
+    ),
+    'versions' => array(
+        '__root__' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '9f49587bc3fcee844a086d5d9346e011a55e0dd0',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'phpstan/phpstan' => array(
+            'pretty_version' => '1.10.57',
+            'version' => '1.10.57.0',
+            'reference' => '1627b1d03446904aaa77593f370c5201d2ecc34e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../phpstan/phpstan',
+            'aliases' => array(),
+            'dev_requirement' => true,
+        ),
+        'spaze/phpstan-disallowed-calls' => array(
+            'pretty_version' => 'v3.1.1',
+            'version' => '3.1.1.0',
+            'reference' => 'fe566326b015674429e1a67a5343183942f493b9',
+            'type' => 'phpstan-extension',
+            'install_path' => __DIR__ . '/../spaze/phpstan-disallowed-calls',
+            'aliases' => array(),
+            'dev_requirement' => true,
+        ),
+    ),
+);
