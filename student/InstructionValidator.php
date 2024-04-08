@@ -92,105 +92,75 @@ class InstructionValidator
                 self::checkArgNumber($argsList, 0);
                 break;
 
-
-
             case "DEFVAR":
-                self::checkArgNumber($argsList, 1);
-                break;
-            case "CALL":
-                self::checkArgNumber($argsList, 1);
-                break;
-            case "PUSHS":
-                self::checkArgNumber($argsList, 1);
-                break;
             case "POPS":
                 self::checkArgNumber($argsList, 1);
+                $expectedTypes = ["var"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
+            case "CALL":
             case "LABEL":
-                self::checkArgNumber($argsList, 1);
-                break;
             case "JUMP":
                 self::checkArgNumber($argsList, 1);
+                $expectedTypes = ["label"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
+            case "PUSHS":
             case "WRITE":
-                self::checkArgNumber($argsList, 1);
-                break;
             case "EXIT":
-                self::checkArgNumber($argsList, 1);
-                break;
             case "DPRINT":
                 self::checkArgNumber($argsList, 1);
+                $expectedTypes = ["symb"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
 
 
             case "MOVE":
-                self::checkArgNumber($argsList, 2);
-                break;
             case "INT2CHAR":
+            case "STRLEN":
+            case "TYPE":
                 self::checkArgNumber($argsList, 2);
+                $expectedTypes = ["var", "symb"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
             case "READ":
                 self::checkArgNumber($argsList, 2);
-                break;
-            case "STRLEN":
-                self::checkArgNumber($argsList, 2);
-                break;
-            case "TYPE":
-                self::checkArgNumber($argsList, 2);
+                $expectedTypes = ["var", "type"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
 
 
             case "ADD":
                 // ADD LF@result 12 14  
                 // argsList = [[arg1, var, LF@result], [arg2, int, 12], [arg3, int, 14]]
+                //NOTE -  add to the other instructions's cases down below
                 self::checkArgNumber($argsList, 3);
                 $expectedTypes = ["var", "symb", "symb"];
-                self::checkArgType($argsList, $expectedTypes);
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
             case "SUB":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "MUL":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "IDIV":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "LT":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "GT":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "EQ":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "AND":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "OR":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "NOT":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "STRI2INT":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "CONCAT":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "GETCHAR":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "SETCHAR":
                 self::checkArgNumber($argsList, 3);
+                $expectedTypes = ["var", "symb", "symb"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
+
             case "JUMPIFEQ":
-                self::checkArgNumber($argsList, 3);
-                break;
             case "JUMPIFNEQ":
                 self::checkArgNumber($argsList, 3);
+                $expectedTypes = ["label", "symb", "symb"];
+                self::checkArgType($argsList, $expectedTypes, $opcode);
                 break;
 
 
@@ -209,13 +179,13 @@ class InstructionValidator
         }
     }
 
-    private static function checkArgType($argsList, $expectedTypes)
+    private static function checkArgType($argsList, $expectedTypes, $opcode)
     {
         // argsList = [[arg1, var, GF@var], [arg2, int, 20], [arg3, int, 10]]
         // print_r($argsList);
         foreach ($argsList as $innerArray) {
             $types[] = $innerArray[1]; // [ var, int, int ]
-            }
+        }
 
         // types - ["var", "int", "int"]
         // expectedTypes = ["var", "symb", "symb"]
@@ -226,10 +196,33 @@ class InstructionValidator
                 $types[$i] = "symb";
             }
 
-            if ($types[$i] != $expectedTypes[$i]) {
-                fwrite(STDERR, "ERROR: Invalid argument type\n");
-                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
+            if ($opcode == "ADD" || $opcode == "SUB" || $opcode == "MUL" || $opcode == "IDIV") {
+                for ($i = 1; $i < count($types); $i++) {
+                    if ($types[$i] == "var" || $types[$i] == "int" || $types[$i] == "string") {
+                        $types[$i] = "symb";
+                    }
+                    else if ($types[$i] == "nil") {
+                        fprintf(STDERR, "ERROR: Invalid argument type $types[$i]\n");
+                        HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 53
+                    }
+                }
             }
+
+            if ($opcode == "WRITE") {
+
+                for ($i = 0; $i < count($types); $i++) {
+                    if ($types[$i] == "var") {
+                        $types[$i] = "symb";
+                    }
+                }
+            }
+        }
+
+        print_r($types);
+
+        if ($types != $expectedTypes) {
+            fwrite(STDERR, "ERROR: Invalid argument type\n");
+            HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
     }
 }
