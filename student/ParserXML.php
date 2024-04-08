@@ -7,9 +7,11 @@ use IPP\Core\ReturnCode;
 
 class ParserXML
 {
+    // Returns an array of instructions parsed from the XML document
     public static function parseXML(\DOMDocument $document): array
     {
         $rootXML = $document->documentElement;
+        HelperFunctions::validateXML($document, $rootXML);
 
         foreach ($rootXML->childNodes as $childNode) {
 
@@ -37,6 +39,7 @@ class ParserXML
                 'order' => $order,
                 'arguments' => $arguments
             ];
+
             $instructions[] = $instruction; // current instruction to parsed instructions's array
         }
         return $instructions;
@@ -53,6 +56,14 @@ class ParserXML
         }
     }
 
+    private static function isValidArgument(\DOMNode $node): bool
+    {
+        // In an XML document, 'text' nodes are usually the ones containing whitespace between elements, 
+        // which are not relevant for the parsing process.
+        // Skip these nodes because they don't represent argument elements
+        return $node instanceof \DOMElement && $node->nodeName !== 'text' && $node->nodeName !== '#text';
+    }
+
     private static function parseArguments(\DOMElement $instruction): array
     {
         $arguments = [];
@@ -63,8 +74,8 @@ class ParserXML
                 // Fullfill the argument array with the name, type and value of the argument
                 $argName = $childNode->nodeName;
                 $argType = $childNode->getAttribute('type'); // value of the attribute named 'type' from the current XML node
-                $argValue = $childNode->nodeValue;
-                $argNumber = $childNode->getAttribute('order');
+                $argValue = trim($childNode->nodeValue);
+                $argNumber = substr($argName, 3); // get the number of the argument from its name, arg1/2/3
 
                 self::validateArgumentType($argName, $argType, $argOrder);
 
@@ -73,15 +84,6 @@ class ParserXML
             }
         }
         return $arguments;
-    }
-
-
-    private static function isValidArgument(\DOMNode $node): bool
-    {
-        // In an XML document, 'text' nodes are usually the ones containing whitespace between elements, 
-        // which are not relevant for the parsing process.
-        // Skip these nodes because they don't represent argument elements
-        return $node instanceof \DOMElement && $node->nodeName !== 'text' && $node->nodeName !== '#text';
     }
 
     //REVIEW - do I need this function??

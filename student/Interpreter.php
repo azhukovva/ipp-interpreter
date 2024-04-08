@@ -20,6 +20,9 @@ class Interpreter extends AbstractInterpreter
 
         // handle options input
         // parse the XML document
+        // INSTRUCTIONS's array
+        $instructions = ParserXML::parseXML($this->source->getDOMDocument()); 
+        
 
         
 

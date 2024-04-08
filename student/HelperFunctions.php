@@ -26,17 +26,16 @@ class HelperFunctions
         }
     }
 
-    public static function validateXML(\DOMDocument $dom): void
+    public static function validateXML(\DOMDocument $dom, $rootXML): void
     {
-        $xmlRoot = $dom->documentElement;
-        $language = $xmlRoot->getAttribute('language');
+        $language = $rootXML->getAttribute('language');
 
-        if ($xmlRoot === null || $xmlRoot->nodeName !== 'program' || strtolower($language) !== 'ippcode24') {
+        if ($rootXML === null || $rootXML->nodeName !== 'program' || strtolower($language) !== 'ippcode24') {
             fwrite(STDERR, "ERROR: Invalid XML structure\n");
             self::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
 
-        foreach ($xmlRoot->attributes as $attribute) {
+        foreach ($rootXML->attributes as $attribute) {
             $attribName = $attribute->nodeName;
             $allowedAttributes = ['language', 'name', 'description'];
 
