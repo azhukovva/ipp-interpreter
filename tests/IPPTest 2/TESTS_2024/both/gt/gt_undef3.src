@@ -1,0 +1,5 @@
+.IPPcode24
+
+DEFVAR GF@a
+
+GT GF@a int@40 GF@undefined

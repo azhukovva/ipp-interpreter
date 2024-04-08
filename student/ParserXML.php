@@ -12,9 +12,8 @@ class ParserXML
     {
         $rootXML = $document->documentElement;
         HelperFunctions::validateXML($document, $rootXML);
-
+     
         foreach ($rootXML->childNodes as $childNode) {
-
             if (!$childNode instanceof \DOMElement) {
                 fwrite(STDERR, "ERROR: Sub-elements of 'program' must be 'instruction'\n");
                 HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
@@ -32,6 +31,7 @@ class ParserXML
             }
 
             $arguments = self::parseArguments($childNode);
+            print_r($arguments);
 
             // EVERYTHING IS OK!
             $instruction = [
@@ -41,8 +41,10 @@ class ParserXML
             ];
 
             $instructions[] = $instruction; // current instruction to parsed instructions's array
+            
         }
-        return $instructions;
+        $array = [];
+        return $array;
     }
 
     private static function validateArgumentType(string $argName, string $type, int $argOrder): void

@@ -12,8 +12,9 @@ class Interpreter extends AbstractInterpreter
     public function execute(): int
     {
         // TODO: Start your code here
+
         // Check \IPP\Core\AbstractInterpreter for predefined I/O objects:
-        // $dom = $this->source->getDOMDocument();
+        $dom = $this->source->getDOMDocument();
         // $val = $this->input->readString();
         // $this->stdout->writeString("stdout");
         // $this->stderr->writeString("stderr");
@@ -21,11 +22,11 @@ class Interpreter extends AbstractInterpreter
         // handle options input
         // parse the XML document
         // INSTRUCTIONS's array
-        $instructions = ParserXML::parseXML($this->source->getDOMDocument()); 
-        
+        $instructions = ParserXML::parseXML($dom);
 
-        
 
-        throw new NotImplementedException;
+
+        return 0;
+        // throw new NotImplementedException;
     }
 }

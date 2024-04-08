@@ -34,6 +34,7 @@ class FileSourceReader implements SourceReader
     {
         $document = new DOMDocument;
         if (!$document->loadXML($this->content, LIBXML_PARSEHUGE)) {
+            
             throw new XMLException;
         }
         return $document;

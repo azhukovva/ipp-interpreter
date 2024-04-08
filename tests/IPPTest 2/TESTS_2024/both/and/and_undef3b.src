@@ -1,0 +1,5 @@
+.IPPcode24
+
+DEFVAR GF@a
+
+AND GF@a bool@true TF@undefined

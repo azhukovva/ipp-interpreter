@@ -1,0 +1,5 @@
+.IPPcode24
+
+CREATEFRAME
+
+INT2CHAR TF@a int@65
