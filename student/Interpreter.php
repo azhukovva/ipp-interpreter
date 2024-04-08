@@ -18,7 +18,6 @@ class Interpreter extends AbstractInterpreter
         $dom = $this->source->getDOMDocument();
 
         /**
-         * REVIEW
          * preserveWhiteSpace is set to true by default. This means that any spaces, tabs, newlines, or other whitespace characters 
          * found within elements and between elements will be preserved as part of the text nodes
          * 
@@ -30,7 +29,6 @@ class Interpreter extends AbstractInterpreter
         $dom->preserveWhiteSpace = false;
 
         /**
-         * REVIEW
          * After preserveWhiteSpace was set to false, we need to rebuild  xml again
          */
         $dom->loadXml($dom->saveXML());
@@ -43,9 +41,7 @@ class Interpreter extends AbstractInterpreter
         // parse the XML document
         // INSTRUCTIONS's array
         $instructions = ParserXML::parseXML($dom); 
-        
-
-        print_r($instructions);
+        InstructionValidator::validate($instructions);
 
         return 0;
     }

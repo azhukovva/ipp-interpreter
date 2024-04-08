@@ -31,7 +31,6 @@ class ParserXML
             }
 
             $arguments = self::parseArguments($childNode);
-            print_r($arguments);
 
             // EVERYTHING IS OK!
             $instruction = [
@@ -43,8 +42,7 @@ class ParserXML
             $instructions[] = $instruction; // current instruction to parsed instructions's array
             
         }
-        $array = [];
-        return $array;
+        return $instructions;
     }
 
     private static function validateArgumentType(string $argName, string $type, int $argOrder): void

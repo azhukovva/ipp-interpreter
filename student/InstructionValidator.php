@@ -211,19 +211,20 @@ class InstructionValidator
 
     private static function checkArgType($argsList, $expectedTypes)
     {
-        // argsList = [[arg1, var, LF@result], [arg2, int, 12], [arg3, int, 14]]
-        $types = [$argsList[0][1], $argsList[1][1], $argsList[2][1]];
+        // argsList = [[arg1, var, GF@var], [arg2, int, 20], [arg3, int, 10]]
+        // print_r($argsList);
+        foreach ($argsList as $innerArray) {
+            $types[] = $innerArray[1]; // [ var, int, int ]
+            }
 
         // types - ["var", "int", "int"]
         // expectedTypes = ["var", "symb", "symb"]
-
+        // INT TO SYMB
         for ($i = 0; $i < count($types); $i++) {
 
             if ($types[$i] == "int") {
                 $types[$i] = "symb";
             }
-
-
 
             if ($types[$i] != $expectedTypes[$i]) {
                 fwrite(STDERR, "ERROR: Invalid argument type\n");
