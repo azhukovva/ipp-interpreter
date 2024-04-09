@@ -218,7 +218,7 @@ class InstructionValidator
             }
         }
 
-        print_r($types);
+        // print_r($types);
 
         if ($types != $expectedTypes) {
             fwrite(STDERR, "ERROR: Invalid argument type\n");
