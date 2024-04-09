@@ -12,8 +12,18 @@ class Symbol {
     private $type;
 
     public function __construct(string $type, string $value) {
-        $this->value = $value;
         $this->type = $type;
+
+        switch($this->type) {
+            case "int":
+                $this->value = intval($value);
+                break;
+            case "string":
+                $this->value = $value;
+                break;
+            default:
+                // TODO error type
+        }
     }
 
     public function getValue() {
@@ -37,7 +47,7 @@ class Variable extends Symbol{
     }
 
     public function assign(string $type, string $value){
-        parent::__construct($value, $type);
+        parent::__construct($type, $value);
     }
 
     public function getName() {
