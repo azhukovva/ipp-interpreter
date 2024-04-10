@@ -25,7 +25,8 @@ class Symbol {
                 $this->value = $value;
                 break;
             default:
-                // TODO error type
+                // REVIEW error type
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }
     }
 

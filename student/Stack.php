@@ -51,7 +51,7 @@ class Stack implements IStack {
     //REVIEW - public??? does not work in createframe case
     private $gframe; // global
     public $tframe; // temporary
-    private $lframe; // local
+    public $lframe; // local
 
     public function __construct()
     {

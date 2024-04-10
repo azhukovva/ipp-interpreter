@@ -207,10 +207,11 @@ class InstructionValidator
                         HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                     }
 
-                    if ($opcode == "IDIV" && isset($argsList[$i][2]) && $argsList[$i][2] == 0) {
-                        fprintf(STDERR, "ERROR: Division by zero\n");
-                        HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
-                    }
+                    // REVIEW - in interpreter.php - will the division by zero check work?
+                    // if ($opcode == "IDIV" && isset($argsList[$i][2]) && $argsList[$i][2] == 0) {
+                    //     fprintf(STDERR, "ERROR: Division by zero\n");
+                    //     HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                    // }
 
                 }
             }
