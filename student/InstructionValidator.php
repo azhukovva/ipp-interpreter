@@ -189,29 +189,36 @@ class InstructionValidator
 
         // types - ["var", "int", "int"]
         // expectedTypes = ["var", "symb", "symb"]
-        // INT TO SYMB
+
         for ($i = 0; $i < count($types); $i++) {
-
-            if ($types[$i] == "int") {
-                $types[$i] = "symb";
-            }
-
-            if ($opcode == "ADD" || $opcode == "SUB" || $opcode == "MUL" || $opcode == "IDIV") {
+            if ($opcode == "ADD" || $opcode == "SUB" || $opcode == "MUL" || $opcode == "IDIV" || $opcode == "MOVE") {
                 for ($i = 1; $i < count($types); $i++) {
-                    if ($types[$i] == "var" || $types[$i] == "int" || $types[$i] == "string") {
+
+                    if ($types[$i] == "int" && !is_numeric($argsList[$i][2])) {
+                        fprintf(STDERR, "ERROR: Invalid integer value\n");
+                        HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
+                    }
+
+                    if ($types[$i] == "var" || $types[$i] == "int") {
                         $types[$i] = "symb";
-                    }
-                    else if ($types[$i] == "nil") {
+
+                    } else if ($types[$i] == "nil") {
                         fprintf(STDERR, "ERROR: Invalid argument type $types[$i]\n");
-                        HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 53
+                        HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                     }
+
+                    if ($opcode == "IDIV" && isset($argsList[$i][2]) && $argsList[$i][2] == 0) {
+                        fprintf(STDERR, "ERROR: Division by zero\n");
+                        HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                    }
+
                 }
             }
-
-            if ($opcode == "WRITE") {
+            
+            if ($opcode == "WRITE" || $opcode == "JUMPIFEQ" || $opcode == "JUMPIFNEQ" || $opcode == "CONCAT" || $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "STRI2INT") {
 
                 for ($i = 0; $i < count($types); $i++) {
-                    if ($types[$i] == "var") {
+                    if ($types[$i] == "var" || $types[$i] == "string") {
                         $types[$i] = "symb";
                     }
                 }
@@ -221,6 +228,7 @@ class InstructionValidator
         // print_r($types);
 
         if ($types != $expectedTypes) {
+            print_r($types);
             fwrite(STDERR, "ERROR: Invalid argument type\n");
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }

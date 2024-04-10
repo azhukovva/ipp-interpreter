@@ -12,7 +12,8 @@ class ParserXML
     {
         $rootXML = $document->documentElement;
         HelperFunctions::validateXML($document, $rootXML);
-     
+
+        $orders = [];
         foreach ($rootXML->childNodes as $childNode) {
             if (!$childNode instanceof \DOMElement) {
                 fwrite(STDERR, "ERROR: Sub-elements of 'program' must be 'instruction'\n");
@@ -25,11 +26,18 @@ class ParserXML
 
             $opcode = $childNode->getAttribute('opcode');
             $order = $childNode->getAttribute('order');
-            if ($opcode === '' || $order === '') {
-                fwrite(STDERR, "ERROR: Missing attribute in 'instruction' element\n");
+            
+            if ($opcode === '' || $order === '' || !is_numeric($order) || $order < 0) {
+                fwrite(STDERR, "ERROR: Invalid 'instruction' structure\n");
                 HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
             }
+            
+            if (in_array($order, $orders)) {
+                fprintf(STDERR, "ERROR: Dupcicit order $order\n");
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
+            }
 
+            $orders[] = $order;
             $arguments = self::parseArguments($childNode);
 
             // EVERYTHING IS OK!
@@ -50,8 +58,8 @@ class ParserXML
         $argsType = ['int', 'bool', 'string', 'nil', 'label', 'type', 'var']; // allowed types of arguments
 
         //TODO - check if the argument order is correct ~ expected 1/2/3 (?)
-        if (($argName !== 'arg' . $argOrder) || $argOrder > 3 || !in_array($type, $argsType)) {
-            fwrite(STDERR, "ERROR: Invalid argument order\n");
+        if (($argName !== 'arg' . $argOrder) || $argOrder > 3 || $argOrder < 0 || !in_array($type, $argsType)) {
+            fwrite(STDERR, "ERROR: Invalid source structure\n");
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
     }
@@ -80,6 +88,7 @@ class ParserXML
                 self::validateArgumentType($argName, $argType, $argOrder);
 
                 $arguments[$argName] = [$argType, $argValue];
+                
                 $argOrder++;
             }
         }

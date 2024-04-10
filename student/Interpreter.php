@@ -61,8 +61,9 @@ class Interpreter extends AbstractInterpreter
         
         // INSTRUCTIONS's array
         $instructions = ParserXML::parseXML($dom); 
-        // InstructionValidator::validate($instructions);
+        InstructionValidator::validate($instructions);
 
+        // Get all LABEL instructions
         $labelInstructions = array_filter($instructions, function($item) { return $item["opcode"] == "LABEL"; });
         
         $labels = array_map(function ($item) { 
@@ -110,6 +111,10 @@ class Interpreter extends AbstractInterpreter
                     $variable->assign($type, $value);
                     break;
                 }
+                case "CREATEFRAME": {
+                    $this->stack->tframe = new Frame();
+                    break;
+                }
                 case "MUL": {
                     [ 
                         "arg1" => [ 0 => $var, 1 => $name ],
@@ -126,6 +131,22 @@ class Interpreter extends AbstractInterpreter
                     $variable->assign($variable->getType(), $value);
                     break;
                 }
+                case "IDIV": {
+                    [ 
+                        "arg1" => [ 0 => $var, 1 => $name ],
+                        "arg2" => [ 0 => $typeSymb1, 1 => $valueSymb1 ],
+                        "arg3" => [ 0 => $typeSymb2, 1 => $valueSymb2 ],
+                    
+                    ] = $arguments;
+
+                    $variable = $this->stack->getVariable(new Variable($name));
+
+                    $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
+                    $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                    $value = $symbol1->getValue() / $symbol2->getValue();
+                    $variable->assign($variable->getType(), $value);
+                    break;
+                }
                 case "ADD": {
                     [ 
                         "arg1" => [ 0 => $var, 1 => $name ],
@@ -139,6 +160,22 @@ class Interpreter extends AbstractInterpreter
                     $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                     $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
                     $value = $symbol1->getValue() + $symbol2->getValue();
+                    $variable->assign($variable->getType(), $value);
+                    break;
+                }
+                case "SUB": {
+                    [ 
+                        "arg1" => [ 0 => $var, 1 => $name ],
+                        "arg2" => [ 0 => $typeSymb1, 1 => $valueSymb1 ],
+                        "arg3" => [ 0 => $typeSymb2, 1 => $valueSymb2 ],
+                    
+                    ] = $arguments;
+
+                    $variable = $this->stack->getVariable(new Variable($name));
+
+                    $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
+                    $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                    $value = $symbol1->getValue() - $symbol2->getValue();
                     $variable->assign($variable->getType(), $value);
                     break;
                 }
@@ -181,6 +218,19 @@ class Interpreter extends AbstractInterpreter
                     $symbol = $this->getSymbol($type, $value);
 
                     echo $symbol->getValue()."\n";
+
+                    break;
+                }
+                case "READ": {
+                    [ 
+                        "arg1" => [ 0 => $type, 1 => $var ]
+                    
+                    ] = $arguments;
+
+                    $variable = $this->stack->getVariable(new Variable($var));
+
+                    $input = $this->input->readString();
+                    $variable->assign($type, $input);
 
                     break;
                 }

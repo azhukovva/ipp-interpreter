@@ -2,6 +2,7 @@
 
 namespace IPP\Student;
 
+use IPP\Core\ReturnCode;
 use IPP\Student\Literals\Variable;
 
 interface IStack {
@@ -10,7 +11,7 @@ interface IStack {
 }
 
 class Frame implements IStack {
-    private $data;
+    private $data; // stores Variable objects
 
     public function __construct()
     {
@@ -21,35 +22,41 @@ class Frame implements IStack {
         return array_key_exists($name, $this->data);
     }
 
-    public function getVariable(Variable $variable): Variable {
-        $name = $variable->getName();
-
-        if(!$this->has($name)) {
-            // TODO Throw error: Variable undefined
-        }
-
-        return $this->data[$name];
-    }
-
-    public function declareVariable(Variable $variable): void {
+     // adds a variable to the data array
+     public function declareVariable(Variable $variable): void {
         $name = $variable->getName();
 
         if($this->has($name)) {
-            // TODO Throw error: Variable already exists
+            // REVIEW Throw error: Variable already exists
+            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR);
         }
 
         $this->data[$name] = $variable;
     }
+
+    // retrieves a variable from the data array
+    public function getVariable(Variable $variable): Variable {
+        $name = $variable->getName();
+
+        if(!$this->has($name)) {
+            // REVIEW Throw error: Variable undefined
+            HelperFunctions::validateErrorCode(ReturnCode::VARIABLE_ACCESS_ERROR);
+        }
+
+        return $this->data[$name];
+    }
 }
 
 class Stack implements IStack {
-    private $gframe;
-    private $tframe;
-    private $lframe;
+    //REVIEW - public??? does not work in createframe case
+    private $gframe; // global
+    public $tframe; // temporary
+    private $lframe; // local
 
     public function __construct()
     {
         $this->gframe = new Frame;
+        $this->tframe = null;
         $this->lframe = array();
     }
 
@@ -62,20 +69,24 @@ class Stack implements IStack {
                 break;
             case "LF":
                 if(empty($this->lframe)){
-                    // TODO error: local frames were not created
+                    //REVIEW -  error: local frames were not created
+                    throw new \Exception("ERROR: Local frames were not created");
                 }
-
+                // get the last local frame that was added to the lframe array
                 end($this->lframe)->declareVariable($variable);
                 break;
             case "TF":
                 if(!isset($this->tframe)) {
-                    //TODO error: tframe was not created
+                    //REVIEW error: tframe was not created
+                    throw new \Exception("ERROR: Temporary frame was not created");
                 }
 
                 $this->tframe->declareVariable($variable);
                 break;
             default:
-                // TODO error: unexpected scope
+                //REVIEW error: unexpected scope
+                throw new \Exception("ERROR: Unexpected scope");
+
         }
     }
 
@@ -88,18 +99,26 @@ class Stack implements IStack {
                 return $this->gframe->getVariable($variable);
             case "LF":
                 if(empty($this->lframe)){
-                    // TODO error: local frames were not created
+                    // REVIEW error: local frames were not created
+                    HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
                 return end($this->lframe)->getVariable($variable);
             case "TF":
                 if(!isset($this->tframe)) {
-                    //TODO error: tframe was not created
+                    //REVIEW error: tframe was not created
+                    HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
-                return $this->tframe->getVariable($variable);
+                if(isset($this->tframe)) {
+                    return $this->tframe->getVariable($variable);
+                } else {
+                    // REVIEW Throw error: Temporary frame was not created
+                    HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
+                }
             default:
-                // TODO error: unexpected scope
+                // REVIEW error: unexpected scope
+                HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
         }
     }
 

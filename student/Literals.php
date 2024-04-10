@@ -2,6 +2,9 @@
 
 namespace IPP\Student\Literals;
 
+use IPP\Student\HelperFunctions;
+use IPP\Core\ReturnCode;
+
 abstract class SymbType {
     const INT = 1;
     const STRING = 2;
@@ -62,7 +65,8 @@ class Variable extends Symbol{
         $success = explode('@', $variable);
 
         if(!$success){
-            // TODO error
+            //REVIEW error
+            HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }
 
         return $success;
