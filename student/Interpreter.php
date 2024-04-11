@@ -254,7 +254,7 @@ class Interpreter extends AbstractInterpreter
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
                         if ($symbol2->getValue() == 0) {
-                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR ); // 57
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
                         }
                         $value = $symbol1->getValue() / $symbol2->getValue();
                         $variable->assign($variable->getType(), $value);
@@ -345,7 +345,7 @@ class Interpreter extends AbstractInterpreter
                         $variable->assign($variable->getType(), $value);
                         break;
                     }
-                    case "STRI2INT": {
+                case "STRI2INT": {
                         [
                             "arg1" => [0 => $var, 1 => $name],
                             "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
@@ -372,33 +372,16 @@ class Interpreter extends AbstractInterpreter
                         break;
                     }
 
-                case "JUMPIFEQ": {
+                case "READ": {
                         [
-                            "arg1" => [0 => $var, 1 => $labelKey],
-                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
-                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
+                            "arg1" => [0 => $type, 1 => $var]
 
                         ] = $arguments;
 
-                        $jumpToIdx = $labels[$labelKey];
+                        $variable = $this->stack->getVariable(new Variable($var));
 
-                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
-                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-
-                        if ($symbol1->getValue() == $symbol2->getValue()) {
-                            $i = $jumpToIdx;
-                        }
-                        break;
-                    }
-                case "JUMP": {
-                        [
-                            "arg1" => [0 => $var, 1 => $labelKey]
-
-                        ] = $arguments;
-
-                        $jumpToIdx = $labels[$labelKey] - 1;
-
-                        $i = $jumpToIdx;
+                        $input = $this->input->readString();
+                        $variable->assign($type, $input);
 
                         break;
                     }
@@ -414,36 +397,183 @@ class Interpreter extends AbstractInterpreter
 
                         break;
                     }
-                case "READ": {
+
+                case "CONCAT":
+                case "GETCHAR":
+                case "SETCHAR": {
                         [
-                            "arg1" => [0 => $type, 1 => $var]
+                            "arg1" => [0 => $var, 1 => $name],
+                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
+                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
 
                         ] = $arguments;
 
-                        $variable = $this->stack->getVariable(new Variable($var));
+                        $variable = $this->stack->getVariable(new Variable($name));
 
-                        $input = $this->input->readString();
-                        $variable->assign($type, $input);
+                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
+                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+
+                        switch ($opcode) {
+                            case "CONCAT":
+                                $value = $symbol1->getValue() . $symbol2->getValue();
+                                break;
+                            case "GETCHAR":
+                                $value = $symbol1->getValue()[$symbol2->getValue()];
+                                break;
+                            case "SETCHAR":
+                                $index = $symbol1->getValue();
+                                $newValue = $symbol2->getValue();
+
+                                if ($index < 0 || $index >= mb_strlen($variable->getValue()) || mb_strlen($newValue) == 0) {
+                                    HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // 58
+                                }
+
+                                $value = $variable->getValue();
+                                $newValue = mb_substr($value, 0, $index) . $newValue . mb_substr($value, $index + 1);
+                                break;
+                        }
+
+                        $variable->assign($variable->getType(), $value);
+                        break;
+                    }
+                case "STRLEN": {
+                        [
+                            "arg1" => [0 => $var, 1 => $name],
+                            "arg2" => [0 => $typeSymb, 1 => $valueSymb],
+
+                        ] = $arguments;
+
+                        $variable = $this->stack->getVariable(new Variable($name));
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+
+                        $value = $symbol->getValue();
+                        $length = mb_strlen($value);
+
+                        $this->stack->declareVariable(new Variable($var));
+                        $this->stack->getVariable(new Variable($var))->assign("int", $length);
+                    }
+
+
+                case "TYPE": {
+                        [
+                            "arg1" => [0 => $var, 1 => $name],
+                            "arg2" => [0 => $typeSymb, 1 => $valueSymb],
+
+                        ] = $arguments;
+
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+
+                        if ($symbol === null) {
+                            $type = "";
+                        } else {
+                            $type = $symbol->getType();
+                        }
+
+                        $this->stack->declareVariable(new Variable($var));
+                        $this->stack->getVariable(new Variable($var))->assign("string", $type);
+                    }
+
+
+
+                case "LABEL": {
+                        [
+                            "arg1" => [0 => $typeLabel, 1 => $nameLabel],
+                        ] = $arguments;
+
+                        if (isset($this->labels[$nameLabel])) {
+                            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
+                        }
+
+                        $this->labels[$nameLabel] = $this->instructionCounter; // current instruction counter
+                        break;
+                    }
+
+
+                case "JUMP": {
+                        [
+                            "arg1" => [0 => $var, 1 => $labelKey]
+
+                        ] = $arguments;
+
+                        $jumpToIdx = $labels[$labelKey] - 1;
+
+                        $i = $jumpToIdx;
 
                         break;
                     }
+
+                case "JUMPIFEQ":
+                case "JUMPIFNEQ": {
+                        [
+                            "arg1" => [0 => $var, 1 => $labelKey],
+                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
+                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
+
+                        ] = $arguments;
+
+                        $jumpToIdx = $labels[$labelKey];
+
+                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
+                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+
+                        switch ($opcode) {
+                            case "JUMPIFEQ":
+                                if ($symbol1->getValue() == $symbol2->getValue()) {
+                                    $i = $jumpToIdx;
+                                }
+                                break;
+                            case "JUMPIFNEQ":
+                                if ($symbol1->getValue() != $symbol2->getValue()) {
+                                    $i = $jumpToIdx;
+                                }
+                                break;
+                        }
+                        break;
+                    }
+
+
+                case "EXIT":
+                case "DPRINT": {
+                        [
+                            "arg1" => [0 => $typeSymb, 1 => $valueSymb],
+                        ] = $arguments;
+
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+                        $value = $symbol->getValue();
+
+                        if (!is_int($value) || $value < 0 || $value > 9) {
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                        }
+
+                        switch ($opcode) {
+                            case "EXIT":
+                                return $value;
+                                break;
+                            case "DPRINT":
+                                fwrite(STDERR, $value . PHP_EOL);
+                                break;
+                        }
+                    }
+
+                case "BREAK": {
+                        //TODO 
+                    }
+                    // Access each item inside the loop
+                    // echo "Opcode: " . $item['opcode'] . "\n";
+                    // echo "Order: " . $item['order'] . "\n";
+
+                    // // Access arguments array
+                    // foreach ($item['arguments'] as $argName => $argValue) {
+                    //     echo "Argument $argName: " . $argValue[0] . " - " . $argValue[1] . "\n";
+                    // }
+
+                    // Add more processing as needed...
             }
 
-            // Access each item inside the loop
-            // echo "Opcode: " . $item['opcode'] . "\n";
-            // echo "Order: " . $item['order'] . "\n";
+            // print_r($this->stack);
+            // print_r($labels);
 
-            // // Access arguments array
-            // foreach ($item['arguments'] as $argName => $argValue) {
-            //     echo "Argument $argName: " . $argValue[0] . " - " . $argValue[1] . "\n";
-            // }
-
-            // Add more processing as needed...
+            return 0;
         }
-
-        // print_r($this->stack);
-        // print_r($labels);
-
-        return 0;
     }
 }
