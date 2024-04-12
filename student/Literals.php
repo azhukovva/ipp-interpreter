@@ -29,6 +29,9 @@ class Symbol
             case "bool":
                 $this->value = $value;
                 break;
+            case "nil":
+                $this->value = "nil";
+                break;
             default:
                 // REVIEW error type
                 HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
@@ -53,10 +56,9 @@ class Variable extends Symbol
 
     public function __construct(string $variable)
     {
-        [$scope, $name] = $this->getScopeAndName($variable);
-
-        $this->scope = $scope;
-        $this->name = $name;
+        $parts = $this->getScopeAndName($variable);
+        $this->scope = $parts[0] ?? null;
+        $this->name = $parts[1] ?? null;
     }
 
     public function assign(string $type, string $value)
@@ -82,7 +84,6 @@ class Variable extends Symbol
             //REVIEW error
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }
-
         return $success;
     }
 }

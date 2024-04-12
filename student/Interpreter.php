@@ -94,6 +94,7 @@ class Interpreter extends AbstractInterpreter
         for ($i = 0; $i < count($instructions); $i++) {
             $item = $instructions[$i];
 
+
             $opcode = $item['opcode'];
             $order = $item['order'];
             $arguments = $item['arguments'];
@@ -191,54 +192,9 @@ class Interpreter extends AbstractInterpreter
                     }
 
 
-                case "ADD": {
-                        [
-                            "arg1" => [0 => $var, 1 => $name],
-                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
-                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
-
-                        ] = $arguments;
-
-                        $variable = $this->stack->getVariable(new Variable($name));
-
-                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
-                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                        $value = $symbol1->getValue() + $symbol2->getValue();
-                        $variable->assign($variable->getType(), $value);
-                        break;
-                    }
-                case "SUB": {
-                        [
-                            "arg1" => [0 => $var, 1 => $name],
-                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
-                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
-
-                        ] = $arguments;
-
-                        $variable = $this->stack->getVariable(new Variable($name));
-
-                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
-                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                        $value = $symbol1->getValue() - $symbol2->getValue();
-                        $variable->assign($variable->getType(), $value);
-                        break;
-                    }
-                case "MUL": {
-                        [
-                            "arg1" => [0 => $var, 1 => $name],
-                            "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
-                            "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
-
-                        ] = $arguments;
-
-                        $variable = $this->stack->getVariable(new Variable($name));
-
-                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
-                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                        $value = $symbol1->getValue() * $symbol2->getValue();
-                        $variable->assign($variable->getType(), $value);
-                        break;
-                    }
+                case "ADD":
+                case "SUB":
+                case "MUL":
                 case "IDIV": {
                         [
                             "arg1" => [0 => $var, 1 => $name],
@@ -251,13 +207,28 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                        if ($symbol2->getValue() == 0) {
-                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                        switch ($opcode) {
+                            case "ADD":
+                                $value = $symbol1->getValue() + $symbol2->getValue();
+                                break;
+                            case "SUB":
+                                $value = $symbol1->getValue() - $symbol2->getValue();
+                                break;
+                            case "MUL":
+                                $value = $symbol1->getValue() * $symbol2->getValue();
+                                break;
+                            case "IDIV":
+                                if ($symbol2->getValue() == 0) {
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                                }
+                                $value = $symbol1->getValue() / $symbol2->getValue();
+                                break;
                         }
-                        $value = $symbol1->getValue() / $symbol2->getValue();
-                        $variable->assign($variable->getType(), $value);
+
+                        $variable->assign("int", $value);
                         break;
                     }
+
                 case "LT":
                 case "GT":
                 case "EQ": {
@@ -293,8 +264,7 @@ class Interpreter extends AbstractInterpreter
                         break;
                     }
                 case "AND":
-                case "OR":
-                case "NOT": {
+                case "OR": {
                         [
                             "arg1" => [0 => $var, 1 => $name],
                             "arg2" => [0 => $typeSymb1, 1 => $valueSymb1],
@@ -306,20 +276,58 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                        if ($symbol1->getType() !== "bool" || $symbol2->getType() !== "bool") {
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
 
                         switch ($opcode) {
                             case "AND":
-                                $value = $symbol1->getValue() && $symbol2->getValue();
+                                if ($symbol1->getValue() === "false" || $symbol2->getValue() === "false") {
+                                    $value = 0;
+                                } else {
+                                    $value = 1;
+                                }
                                 break;
                             case "OR":
-                                $value = $symbol1->getValue() || $symbol2->getValue();
-                                break;
-                            case "NOT":
-                                $value = !$symbol1->getValue();
+                                if ($symbol1->getValue() === "true" || $symbol2->getValue() === "true") {
+                                    $value = 1;
+                                } else {
+                                    $value = 0;
+                                }
                                 break;
                         }
+                        if ($value == 1) {
+                            $value = "true";
+                        } else if ($value == 0) {
+                            $value = "false";
+                        }
 
-                        $variable->assign($variable->getType(), $value);
+                        $variable->assign("bool", $value);
+                        break;
+                    }
+                case "NOT": {
+                        [
+                            "arg1" => [0 => $var, 1 => $name],
+                            "arg2" => [0 => $typeSymb, 1 => $valueSymb],
+
+                        ] = $arguments;
+
+                        $variable = $this->stack->getVariable(new Variable($name));
+
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+
+                        if ($symbol->getType() !== "bool") {
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
+                        if ($symbol->getValue() === "true") {
+                            $value = "false";
+                        } else {
+                            $value = "true";
+                        }
+
+                        $variable->assign("bool", $value);
                         break;
                     }
                 case "INT2CHAR": {
@@ -384,18 +392,20 @@ class Interpreter extends AbstractInterpreter
                         break;
                     }
                 case "WRITE": {
+                        // print_r("konec\n");
                         [
                             "arg1" => [0 => $type, 1 => $value]
 
                         ] = $arguments;
 
                         $value = str_replace('\032', ' ', $value);
-                        $value = str_replace('\010', "\n", $value); 
+                        $value = str_replace('\010', "\n", $value);
+
 
                         $symbol = $this->getSymbol($type, $value);
 
                         echo $symbol->getValue() . "\n";
-                    
+
                         break;
                     }
 
@@ -408,7 +418,6 @@ class Interpreter extends AbstractInterpreter
                             "arg3" => [0 => $typeSymb2, 1 => $valueSymb2],
 
                         ] = $arguments;
-
                         $variable = $this->stack->getVariable(new Variable($name));
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
@@ -422,15 +431,19 @@ class Interpreter extends AbstractInterpreter
                                 $value = $symbol1->getValue()[$symbol2->getValue()];
                                 break;
                             case "SETCHAR":
+                                if ($symbol1->getType() !== "int" || $symbol2->getType() !== "string") {
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                                }
                                 $index = $symbol1->getValue();
                                 $newValue = $symbol2->getValue();
+
 
                                 if ($index < 0 || $index >= mb_strlen($variable->getValue()) || mb_strlen($newValue) == 0) {
                                     HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // 58
                                 }
 
                                 $value = $variable->getValue();
-                                $newValue = mb_substr($value, 0, $index) . $newValue . mb_substr($value, $index + 1);
+                                $value = mb_substr($value, 0, $index) . $newValue . mb_substr($value, $index + 1);
                                 break;
                         }
 
@@ -443,17 +456,15 @@ class Interpreter extends AbstractInterpreter
                             "arg2" => [0 => $typeSymb, 1 => $valueSymb],
 
                         ] = $arguments;
-
                         $variable = $this->stack->getVariable(new Variable($name));
                         $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
                         $value = $symbol->getValue();
                         $length = mb_strlen($value);
 
-                        $this->stack->declareVariable(new Variable($var));
-                        $this->stack->getVariable(new Variable($var))->assign("int", $length);
+                        $this->stack->getVariable(new Variable($name));
+                        $variable->assign("int", $length);
                     }
-
 
                 case "TYPE": {
                         [
@@ -555,7 +566,6 @@ class Interpreter extends AbstractInterpreter
                                 break;
                         }
                     }
-
                 case "BREAK": {
                         //TODO 
                         $state = [
@@ -573,12 +583,13 @@ class Interpreter extends AbstractInterpreter
                     // }
 
                     // Add more processing as needed...
+
             }
 
             // print_r($this->stack);
             // print_r($labels);
-
-            return 0;
         }
+
+        return 0;
     }
 }

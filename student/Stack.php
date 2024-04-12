@@ -25,9 +25,9 @@ class Frame implements IStack {
      // adds a variable to the data array
      public function declareVariable(Variable $variable): void {
         $name = $variable->getName();
-
+        
         if($this->has($name)) {
-            // REVIEW Throw error: Variable already exists
+            // REVIEW Variable already exists
             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR);
         }
 
@@ -37,12 +37,13 @@ class Frame implements IStack {
     // retrieves a variable from the data array
     public function getVariable(Variable $variable): Variable {
         $name = $variable->getName();
+ 
 
         if(!$this->has($name)) {
             // REVIEW Throw error: Variable undefined
+
             HelperFunctions::validateErrorCode(ReturnCode::VARIABLE_ACCESS_ERROR);
         }
-
         return $this->data[$name];
     }
 }
@@ -70,7 +71,7 @@ class Stack implements IStack {
             case "LF":
                 if(empty($this->lframe)){
                     //REVIEW -  error: local frames were not created
-                    throw new \Exception("ERROR: Local frames were not created");
+                    HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
                 // get the last local frame that was added to the lframe array
                 end($this->lframe)->declareVariable($variable);
@@ -78,14 +79,16 @@ class Stack implements IStack {
             case "TF":
                 if(!isset($this->tframe)) {
                     //REVIEW error: tframe was not created
-                    throw new \Exception("ERROR: Temporary frame was not created");
+                    HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
-                $this->tframe->declareVariable($variable);
+                if ($this->tframe !== null) {
+                    $this->tframe->declareVariable($variable);
+                }
                 break;
             default:
                 //REVIEW error: unexpected scope
-                throw new \Exception("ERROR: Unexpected scope");
+                HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
 
         }
     }
@@ -93,7 +96,6 @@ class Stack implements IStack {
     public function getVariable(Variable $variable): Variable {
         $name = $variable->getName();
         $scope = $variable->getScope();
-
         switch($scope) {
             case "GF":
                 return $this->gframe->getVariable($variable);
@@ -121,5 +123,6 @@ class Stack implements IStack {
                 HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
         }
     }
+
 
 }

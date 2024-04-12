@@ -119,6 +119,7 @@ class InstructionValidator
             case "INT2CHAR":
             case "STRLEN":
             case "TYPE":
+            case "NOT":
                 self::checkArgNumber($argsList, 2);
                 $expectedTypes = ["var", "symb"];
                 self::checkArgType($argsList, $expectedTypes, $opcode);
@@ -146,7 +147,6 @@ class InstructionValidator
             case "EQ":
             case "AND":
             case "OR":
-            case "NOT":
             case "STRI2INT":
             case "CONCAT":
             case "GETCHAR":
@@ -191,7 +191,7 @@ class InstructionValidator
         // expectedTypes = ["var", "symb", "symb"]
 
         for ($i = 0; $i < count($types); $i++) {
-            if ($opcode == "ADD" || $opcode == "SUB" || $opcode == "MUL" || $opcode == "IDIV" ) {
+            if ($opcode == "ADD" || $opcode == "SUB" || $opcode == "MUL" || $opcode == "IDIV") {
                 for ($i = 1; $i < count($types); $i++) {
 
                     if ($types[$i] == "int" && !is_numeric($argsList[$i][2])) {
@@ -201,7 +201,6 @@ class InstructionValidator
 
                     if ($types[$i] == "var" || $types[$i] == "int") {
                         $types[$i] = "symb";
-
                     } else if ($types[$i] == "nil") {
                         fprintf(STDERR, "ERROR: Invalid argument type $types[$i]\n");
                         HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
@@ -215,37 +214,54 @@ class InstructionValidator
 
                 }
             }
-            
-            if ($opcode == "MOVE" || $opcode == "WRITE" || $opcode == "JUMPIFEQ" || $opcode == "JUMPIFNEQ" || $opcode == "CONCAT" || $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "STRI2INT") {
 
+            if (
+                $opcode == "MOVE" || $opcode == "WRITE" || $opcode == "JUMPIFEQ" || $opcode == "JUMPIFNEQ" || $opcode == "CONCAT" ||
+                $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND" 
+            ) {
                 for ($i = 0; $i < count($types); $i++) {
                     //REVIEW - $types[$i] == "string"
-                    
                     if ($types[$i] == "var" || $types[$i] == "string" || $types[$i] == "bool" || $types[$i] == "int" || $types[$i] == "nil") {
                         $types[$i] = "symb";
                     }
 
-                    if ($opcode =="MOVE" && $types[0] == "symb"){
+                    if (($opcode == "MOVE" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND") && $types[0] == "symb") {
                         $types[0] = "var";
                     }
 
-                    print_r($opcode);
-                    print_r(" ");
-                    print_r($types[$i]);
-                    print_r(" ");
-                    print_r($argsList[$i][2]);
-                    print_r("\n");
+                    // print_r($opcode);
+                    // print_r(" ");
+                    // print_r($types[$i]);
+                    // print_r(" ");
+                    // print_r($argsList[$i][2]);
+                    // print_r("\n");
                 }
             }
         }
+        if ($opcode == "STRLEN") {
+            for ($i = 0; $i < count($types); $i++) {
+                if ($types[1] == "var" || $types[1] == "string" || $types[1] == "bool" || $types[1] == "int" || $types[1] == "nil") {
+                    $types[$i] = "symb";
+                }
+            }
+            $types[0] = "var";
+        }
+        if ($opcode == "OR") {
+            for ($i = 0; $i < count($types); $i++) {
+                if ($types[$i] == "var" || $types[$i] == "string" || $types[$i] == "bool" || $types[$i] == "int" || $types[$i] == "nil") {
+                    $types[$i] = "symb";
+                }
+            }
+            $types[0] = "var";
+        }
 
-         
+
 
         if ($types != $expectedTypes) {
             print_r($types);
             print_r(" --- \n");
             print_r($expectedTypes);
-            fwrite(STDERR, "ERROR: Invalid argument typeee\n");
+            fwrite(STDERR, "ERROR: Invalid argument typeee \n");
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
     }
