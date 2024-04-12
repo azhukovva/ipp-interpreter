@@ -217,27 +217,24 @@ class InstructionValidator
 
             if (
                 $opcode == "MOVE" || $opcode == "WRITE" || $opcode == "JUMPIFEQ" || $opcode == "JUMPIFNEQ" || $opcode == "CONCAT" ||
-                $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND" 
+                $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND" || 
+                $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
+                $opcode == "INT2CHAR" || $opcode == "STRI2INT"
             ) {
                 for ($i = 0; $i < count($types); $i++) {
                     //REVIEW - $types[$i] == "string"
                     if ($types[$i] == "var" || $types[$i] == "string" || $types[$i] == "bool" || $types[$i] == "int" || $types[$i] == "nil") {
                         $types[$i] = "symb";
                     }
-
-                    if (($opcode == "MOVE" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND") && $types[0] == "symb") {
-                        $types[0] = "var";
-                    }
-
-                    // print_r($opcode);
-                    // print_r(" ");
-                    // print_r($types[$i]);
-                    // print_r(" ");
-                    // print_r($argsList[$i][2]);
-                    // print_r("\n");
                 }
             }
         }
+        if (($opcode == "MOVE" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND"
+            || $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
+            $opcode == "INT2CHAR" || $opcode == "STRI2INT") && $types[0] == "symb") {
+            $types[0] = "var";
+        }
+
         if ($opcode == "STRLEN") {
             for ($i = 0; $i < count($types); $i++) {
                 if ($types[1] == "var" || $types[1] == "string" || $types[1] == "bool" || $types[1] == "int" || $types[1] == "nil") {
@@ -254,6 +251,7 @@ class InstructionValidator
             }
             $types[0] = "var";
         }
+
 
 
 

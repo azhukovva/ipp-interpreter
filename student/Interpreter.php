@@ -109,6 +109,12 @@ class Interpreter extends AbstractInterpreter
 
                         // Assign value to a variable
                         $variable = $this->stack->getVariable(new Variable($arg));
+
+                        if ($type === 'var') {
+                            $valueVariable = $this->stack->getVariable(new Variable($value));
+                            $value = $valueVariable->getValue();
+                        }
+
                         $variable->assign($type, $value);
                         break;
                     }
@@ -207,6 +213,12 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+
+                        if ($symbol1->getType() !== "int" || $symbol2->getType() !== "int") {
+                            fwrite(STDERR, "ERROR: Invalid operand type\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
                         switch ($opcode) {
                             case "ADD":
                                 $value = $symbol1->getValue() + $symbol2->getValue();
@@ -243,8 +255,13 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                        if ($symbol1->getType() !== $symbol2->getType()) {
+                            fwrite(STDERR, "ERROR: Must have the same operand type\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
 
-                        if (($typeSymb1 === 'nil' || $typeSymb2 === 'nil') && $opcode !== 'EQ') {
+                        if (($symbol1->getType() === 'nil' || $symbol2->getType() === 'nil') && $opcode !== 'EQ') {
+                            fwrite(STDERR, "ERROR: Use nil only with EQ instruction\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
 
@@ -259,8 +276,12 @@ class Interpreter extends AbstractInterpreter
                                 $value = $symbol1->getValue() == $symbol2->getValue();
                                 break;
                         }
-
-                        $variable->assign($variable->getType(), $value);
+                        if ($value == 1) {
+                            $value = "true";
+                        } else if ($value == 0) {
+                            $value = "false";
+                        }
+                        $variable->assign("bool", $value);
                         break;
                     }
                 case "AND":
@@ -337,6 +358,11 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
+                        if ($typeSymb !== "int") {
+                            fwrite(STDERR, "ERROR: Must be int in the second argument\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
                         $variable = $this->stack->getVariable(new Variable($name));
 
                         $symbol = $this->getSymbol($typeSymb, $valueSymb);
@@ -344,11 +370,12 @@ class Interpreter extends AbstractInterpreter
                         $value = $symbol->getValue();
 
                         if ($value < 0 || $value > 0x10FFFF) {
+                            fwrite(STDERR, "ERROR: Invalid unicode value\n");
                             HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // 58
                         }
 
                         $value = mb_chr($value);
-                        $variable->assign($variable->getType(), $value);
+                        $variable->assign("string", $value);
                         break;
                     }
                 case "STRI2INT": {
@@ -359,22 +386,29 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
+                        if ($typeSymb1 !== "string" || $typeSymb2 !== "int") {
+                            fwrite(STDERR, "ERROR: Invalid argument type\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
                         $variable = $this->stack->getVariable(new Variable($name)); // for unicode value
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
 
-                        $value1 = $symbol1->getValue();
-                        $value2 = $symbol2->getValue();
+                        $value = $symbol1->getValue();
+                        $index = $symbol2->getValue();
+
                         // Check if the character index($value1) and string length($value2) are non-negative 
                         // and if the index is within the range of the string length
-                        if ($value1 < 0 || $value2 < 0 || $value1 >= mb_strlen($value2)) {
+                        if ($index < 0 || $index >= mb_strlen($value)) {
+                            fwrite(STDERR, "ERROR: Invalid index or string length\n");
                             HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // 58
                         }
-
                         // to unicode value
-                        $value = mb_ord($value2[$value1]);
-                        $variable->assign($variable->getType(), $value);
+                        $char = mb_substr($value, $index, 1);
+                        $ordinalValue = mb_ord($char);
+                        $variable->assign("int", (string)$ordinalValue);
                         break;
                     }
 
@@ -392,7 +426,6 @@ class Interpreter extends AbstractInterpreter
                         break;
                     }
                 case "WRITE": {
-                        // print_r("konec\n");
                         [
                             "arg1" => [0 => $type, 1 => $value]
 
@@ -462,7 +495,13 @@ class Interpreter extends AbstractInterpreter
                         $value = $symbol->getValue();
                         $length = mb_strlen($value);
 
+
                         $this->stack->getVariable(new Variable($name));
+                        //TODO 
+                        // if ($type === 'var') {
+                        //     $valueVariable = $this->stack->getVariable(new Variable($value));
+                        //     $value = $valueVariable->getValue();
+                        // }
                         $variable->assign("int", $length);
                     }
 

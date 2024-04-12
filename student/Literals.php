@@ -25,6 +25,7 @@ class Symbol
             case "int":
                 $this->value = intval($value);
                 break;
+            case "var":
             case "string":
             case "bool":
                 $this->value = $value;
@@ -34,6 +35,7 @@ class Symbol
                 break;
             default:
                 // REVIEW error type
+                fwrite(STDERR, "ERROR: Invalid argument type $type\n");
                 HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }
     }
