@@ -5,23 +5,28 @@ namespace IPP\Student\Literals;
 use IPP\Student\HelperFunctions;
 use IPP\Core\ReturnCode;
 
-abstract class SymbType {
+abstract class SymbType
+{
     const INT = 1;
     const STRING = 2;
 }
 
-class Symbol {
+class Symbol
+{
     private $value;
     private $type;
 
-    public function __construct(string $type, string $value) {
+    public function __construct(string $type, string $value)
+    {
         $this->type = $type;
 
-        switch($this->type) {
+
+        switch ($this->type) {
             case "int":
                 $this->value = intval($value);
                 break;
             case "string":
+            case "bool":
                 $this->value = $value;
                 break;
             default:
@@ -30,42 +35,50 @@ class Symbol {
         }
     }
 
-    public function getValue() {
+    public function getValue()
+    {
         return $this->value;
     }
 
-    public function getType() {
+    public function getType()
+    {
         return $this->type;
     }
 }
 
-class Variable extends Symbol{
+class Variable extends Symbol
+{
     private $name;
     private $scope;
 
-    public function __construct(string $variable) {
+    public function __construct(string $variable)
+    {
         [$scope, $name] = $this->getScopeAndName($variable);
-        
+
         $this->scope = $scope;
         $this->name = $name;
     }
 
-    public function assign(string $type, string $value){
+    public function assign(string $type, string $value)
+    {
         parent::__construct($type, $value);
     }
 
-    public function getName() {
+    public function getName()
+    {
         return $this->name;
     }
 
-    public function getScope() {
+    public function getScope()
+    {
         return $this->scope;
     }
 
-    private function getScopeAndName(string $variable) {
+    private function getScopeAndName(string $variable)
+    {
         $success = explode('@', $variable);
 
-        if(!$success){
+        if (!$success) {
             //REVIEW error
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }

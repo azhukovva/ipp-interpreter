@@ -10,7 +10,6 @@ use IPP\Student\Literals\Symbol;
 use IPP\Student\Literals\Variable;
 use IPP\Core\ReturnCode;
 
-echo "Hello World!\n";
 
 class Interpreter extends AbstractInterpreter
 {
@@ -26,7 +25,6 @@ class Interpreter extends AbstractInterpreter
         if ($type == "var") {
             return $this->stack->getVariable(new Variable($value));
         }
-
         return new Symbol($type, $value);
     }
 
@@ -391,10 +389,13 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
+                        $value = str_replace('\032', ' ', $value);
+                        $value = str_replace('\010', "\n", $value); 
+
                         $symbol = $this->getSymbol($type, $value);
 
                         echo $symbol->getValue() . "\n";
-
+                    
                         break;
                     }
 
@@ -557,6 +558,10 @@ class Interpreter extends AbstractInterpreter
 
                 case "BREAK": {
                         //TODO 
+                        $state = [
+                            'position' => $this->$item,
+                            'instructionsExecuted' => $this->instructionCounter,
+                        ];
                     }
                     // Access each item inside the loop
                     // echo "Opcode: " . $item['opcode'] . "\n";
