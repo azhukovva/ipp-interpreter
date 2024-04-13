@@ -17,6 +17,7 @@ class Interpreter extends AbstractInterpreter
     private Stack $stack;
 
     private array $callStack;
+    private array $dataStack;
     private array $labels;
     private int $instructionCounter = 0;
 
@@ -34,6 +35,7 @@ class Interpreter extends AbstractInterpreter
         $this->stack = new Stack;
         $this->callStack = array();
         $this->labels = array();
+        $this->dataStack = array();
         // TODO: Start your code here
 
         // Check \IPP\Core\AbstractInterpreter for predefined I/O objects:
@@ -124,6 +126,7 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "PUSHFRAME": {
                         if (!isset($this->stack->tframe)) {
+                            fwrite(STDERR, "ERROR: frame was not created\n");
                             HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR); // 55
                         } else {
                             // TF -> LF
@@ -134,6 +137,7 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "POPFRAME": {
                         if (empty($this->stack->lframe)) {
+                            fwrite(STDERR, "ERROR: stack is empty\n");
                             HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR); // 55
                         } else {
                             // LF -> TF
@@ -152,7 +156,8 @@ class Interpreter extends AbstractInterpreter
                         ["arg1" => [0 => $type, 1 => $label]] = $arguments;
 
                         if ($type !== 'label') {
-                            throw new \Exception("Error: Invalid argument type for CALL instruction. Expected 'label'");
+                            fwrite(STDERR, "ERROR: Invalid argument type for CALL instruction. Expected 'label'\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
                         }
 
                         // Save the current position to the call stack
@@ -176,24 +181,25 @@ class Interpreter extends AbstractInterpreter
                         ["arg1" => [0 => $type, 1 => $value]] = $arguments;
 
                         $symbol = $this->getSymbol($type, $value);
-                        if ($this->stack->tframe !== null) {
-                            // ⟨symb⟩ value TO the data stack
-                            $this->stack->tframe->push($symbol);
-                        } else {
-                            HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR); // 55
-                        }
+
+                        $symbValue = $symbol->getValue();
+                        $this->dataStack[] = $symbValue;
                         break;
                     }
                 case "POPS": {
                         ["arg1" => [0 => $type, 1 => $var]] = $arguments;
 
-                        $variable = $this->stack->getVariable(new Variable($var));
-                        if ($this->stack->tframe !== null) {
-                            // ⟨var⟩ value FROM the data stack
-                            $variable->assign($type, $this->stack->tframe->pop()->getValue()); // removes the last element from the stack and assigns it to the $variable
-                        } else {
-                            HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR); // 55
+                        if (empty($this->dataStack)) {
+                            fwrite(STDERR, "ERROR: Data stack is empty\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::VALUE_ERROR); // 56
                         }
+
+                        $symbol = array_pop($this->dataStack);
+
+                        // Store the popped value in the specified variable
+                        $variable = $this->stack->getVariable(new Variable($var));
+                        $variable->assign("string", $symbol);
+
                         break;
                     }
 
@@ -461,17 +467,33 @@ class Interpreter extends AbstractInterpreter
                                 $value = $symbol1->getValue() . $symbol2->getValue();
                                 break;
                             case "GETCHAR":
-                                $value = $symbol1->getValue()[$symbol2->getValue()];
-                                break;
-                            case "SETCHAR":
+                                //TODO - to chekType function
                                 if ($symbol1->getType() !== "int" || $symbol2->getType() !== "string") {
+                                    fwrite(STDERR, "ERROR: Invalid operand type\n");
                                     HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                                 }
+                                $string = $symbol1->getValue();
+                                $index = intval($symbol2->getValue());
+
+                                if ($index < 0 || $index >= mb_strlen($string)) {
+                                    fwrite(STDERR, "ERROR: Invalid index or string length\n");
+                                    HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // Error code 58
+                                }
+                                $char = mb_substr($string, $index, 1);
+                                break;
+                            case "SETCHAR":
+
+                                if ($symbol1->getType() !== "int" || $symbol2->getType() !== "string") {
+                                    fwrite(STDERR, "ERROR: Invalid operand type\n");
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                                }
+
                                 $index = $symbol1->getValue();
                                 $newValue = $symbol2->getValue();
 
 
                                 if ($index < 0 || $index >= mb_strlen($variable->getValue()) || mb_strlen($newValue) == 0) {
+                                    fwrite(STDERR, "ERROR: Invalid index or string length\n");
                                     HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // 58
                                 }
 
@@ -480,7 +502,7 @@ class Interpreter extends AbstractInterpreter
                                 break;
                         }
 
-                        $variable->assign($variable->getType(), $value);
+                        $variable->assign("string", $value);
                         break;
                     }
                 case "STRLEN": {

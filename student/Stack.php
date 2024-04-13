@@ -28,7 +28,6 @@ class Frame implements IStack {
 
         
         if($this->has($name)) {
-            // REVIEW Variable already exists
             fwrite(STDERR, "Variable already exists\n");
             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR);
         }
@@ -41,8 +40,7 @@ class Frame implements IStack {
         $name = $variable->getName();
  
         if(!$this->has($name)) {
-            // REVIEW Throw error: Variable undefined
-
+            fwrite(STDERR, "Variable undefined\n");
             HelperFunctions::validateErrorCode(ReturnCode::VARIABLE_ACCESS_ERROR);
         }
         return $this->data[$name];
@@ -80,7 +78,7 @@ class Stack implements IStack {
                 break;
             case "TF":
                 if(!isset($this->tframe)) {
-                    //REVIEW error: tframe was not created
+                    fwrite(STDERR, "Temporary frame was not created\n");
                     HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
@@ -104,26 +102,25 @@ class Stack implements IStack {
                 return $this->gframe->getVariable($variable);
             case "LF":
                 if(empty($this->lframe)){
-                    // REVIEW error: local frames were not created
+                    fwrite(STDERR, "Local frames were not created\n");
                     HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
                 return end($this->lframe)->getVariable($variable);
             case "TF":
                 if(!isset($this->tframe)) {
-                    //REVIEW error: tframe was not created
+                    fwrite(STDERR, "Temporary frames were not created\n");
                     HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
 
                 if(isset($this->tframe)) {
                     return $this->tframe->getVariable($variable);
                 } else {
-                    
-                    // REVIEW Throw error: Temporary frame was not created
+                    fwrite(STDERR, "Temporary frame was not created\n");
                     HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
                 }
             default:
-                // REVIEW error: unexpected scope
+                fwrite(STDERR, "Unexpected scope: $scope\n");
                 HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
         }
     }
