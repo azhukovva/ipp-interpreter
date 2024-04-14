@@ -345,6 +345,7 @@ class Interpreter extends AbstractInterpreter
                         $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
                         if ($symbol->getType() !== "bool") {
+                            fwrite(STDERR, "ERROR: Must be bool in the second argument\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
 
@@ -392,9 +393,14 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
+
                         if ($typeSymb1 !== "string" || $typeSymb2 !== "int") {
-                            fwrite(STDERR, "ERROR: Invalid argument type\n");
-                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                            $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                            if (is_int($symbol2->getValue())) {
+                            } else {
+                                fwrite(STDERR, "ERROR: Invalid argument type\n");
+                                HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                            }
                         }
 
                         $variable = $this->stack->getVariable(new Variable($name)); // for unicode value
@@ -443,7 +449,7 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol = $this->getSymbol($type, $value);
 
-                        echo $symbol->getValue() . "\n";
+                        echo $symbol->getValue();
 
                         break;
                     }
