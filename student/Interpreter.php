@@ -19,7 +19,7 @@ class Interpreter extends AbstractInterpreter
     private array $callStack;
     private array $dataStack;
     private array $labels;
-    private int $instructionCounter = 0;
+    private int $instructionCounter = 1;
 
     private function getSymbol(string $type, string $value): Symbol
     {
@@ -112,12 +112,15 @@ class Interpreter extends AbstractInterpreter
                         // Assign value to a variable
                         $variable = $this->stack->getVariable(new Variable($arg));
 
+
                         if ($type === 'var') {
                             $valueVariable = $this->stack->getVariable(new Variable($value));
                             $value = $valueVariable->getValue();
                         }
 
+
                         $variable->assign($type, $value);
+
                         break;
                     }
                 case "CREATEFRAME": {
@@ -147,17 +150,21 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "DEFVAR": {
                         ["arg1" => [0 => $type, 1 => $arg]] = $arguments;
-
                         // Declare variables
                         $this->stack->declareVariable(new Variable($arg));
+
                         break;
                     }
                 case "CALL": {
                         ["arg1" => [0 => $type, 1 => $label]] = $arguments;
-
                         if ($type !== 'label') {
                             fwrite(STDERR, "ERROR: Invalid argument type for CALL instruction. Expected 'label'\n");
                             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
+                        }
+                        print_r($labels);
+                        if (!isset($this->labels[$label])) {
+                            fwrite(STDERR, "ERROR: Label not found\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
                         }
 
                         // Save the current position to the call stack
@@ -168,7 +175,8 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "RETURN": {
                         if (empty($this->callStack)) {
-                            throw new \Exception("Error: Call stack is empty");
+                            fwrite(STDERR, "ERROR: Call stack is empty\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::VALUE_ERROR); // 56
                         }
 
                         // Return to the last position
@@ -237,6 +245,7 @@ class Interpreter extends AbstractInterpreter
                                 break;
                             case "IDIV":
                                 if ($symbol2->getValue() == 0) {
+                                    fwrite(STDERR, "ERROR: Division by zero\n");
                                     HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
                                 }
                                 $value = $symbol1->getValue() / $symbol2->getValue();
@@ -261,7 +270,7 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                        if ($symbol1->getType() !== $symbol2->getType()) {
+                        if ($symbol1->getType() !== $symbol2->getType() && $symbol1->getType() !== 'nil' && $symbol2->getType() !== 'nil') {
                             fwrite(STDERR, "ERROR: Must have the same operand type\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
@@ -304,6 +313,7 @@ class Interpreter extends AbstractInterpreter
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
                         if ($symbol1->getType() !== "bool" || $symbol2->getType() !== "bool") {
+                            fwrite(STDERR, "ERROR: Must have the same operand type\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
 
@@ -446,9 +456,7 @@ class Interpreter extends AbstractInterpreter
                         $value = str_replace('\032', ' ', $value);
                         $value = str_replace('\010', "\n", $value);
 
-
                         $symbol = $this->getSymbol($type, $value);
-
                         echo $symbol->getValue();
 
                         break;
@@ -470,6 +478,10 @@ class Interpreter extends AbstractInterpreter
 
                         switch ($opcode) {
                             case "CONCAT":
+                                if ($symbol1->getType() !== "string" || $symbol2->getType() !== "string") {
+                                    fwrite(STDERR, "ERROR: Invalid operand type in CONCAT\n");
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                                }
                                 $value = $symbol1->getValue() . $symbol2->getValue();
                                 break;
                             case "GETCHAR":
@@ -517,19 +529,19 @@ class Interpreter extends AbstractInterpreter
                             "arg2" => [0 => $typeSymb, 1 => $valueSymb],
 
                         ] = $arguments;
+
+                        if ($typeSymb !== "string") {
+                            fwrite(STDERR, "ERROR: Invalid operand type. Must be 'string'\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                        }
+
                         $variable = $this->stack->getVariable(new Variable($name));
+
                         $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
                         $value = $symbol->getValue();
                         $length = mb_strlen($value);
 
-
-                        $this->stack->getVariable(new Variable($name));
-                        //TODO 
-                        // if ($type === 'var') {
-                        //     $valueVariable = $this->stack->getVariable(new Variable($value));
-                        //     $value = $valueVariable->getValue();
-                        // }
                         $variable->assign("int", $length);
                     }
 
@@ -560,9 +572,9 @@ class Interpreter extends AbstractInterpreter
                         ] = $arguments;
 
                         if (isset($this->labels[$nameLabel])) {
+                            fwrite(STDERR, "ERROR: Label already exists\n");
                             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
                         }
-
                         $this->labels[$nameLabel] = $this->instructionCounter; // current instruction counter
                         break;
                     }
@@ -590,10 +602,16 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-                        $jumpToIdx = $labels[$labelKey];
+                        $jumpToIdx = $labels[$labelKey] - 1;
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+
+                        if ($symbol1->getType() !== $symbol2->getType() && $symbol1->getType() !== 'nil' && $symbol2->getType() !== 'nil') {
+                            fwrite(STDERR, "ERROR: Must have the same operand type\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
+                            break;
+                        }
 
                         switch ($opcode) {
                             case "JUMPIFEQ":
@@ -602,6 +620,7 @@ class Interpreter extends AbstractInterpreter
                                 }
                                 break;
                             case "JUMPIFNEQ":
+
                                 if ($symbol1->getValue() != $symbol2->getValue()) {
                                     $i = $jumpToIdx;
                                 }
@@ -621,13 +640,13 @@ class Interpreter extends AbstractInterpreter
                         $value = $symbol->getValue();
 
                         if (!is_int($value) || $value < 0 || $value > 9) {
+                            fwrite(STDERR, "ERROR: Invalid operand value in EXIT\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
                         }
 
                         switch ($opcode) {
                             case "EXIT":
                                 return $value;
-                                break;
                             case "DPRINT":
                                 fwrite(STDERR, $value . PHP_EOL);
                                 break;
@@ -652,6 +671,7 @@ class Interpreter extends AbstractInterpreter
                     // Add more processing as needed...
 
             }
+            $this->instructionCounter++;
 
             // print_r($this->stack);
             // print_r($labels);

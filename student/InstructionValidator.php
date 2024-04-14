@@ -220,7 +220,7 @@ class InstructionValidator
                 $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND" || 
                 $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
                 $opcode == "INT2CHAR" || $opcode == "STRI2INT" ||
-                $opcode == "PUSHS"
+                $opcode == "PUSHS" || $opcode == "EXIT" || $opcode == "CONCAT"
             ) {
                 for ($i = 0; $i < count($types); $i++) {
                     //REVIEW - $types[$i] == "string"
@@ -232,7 +232,8 @@ class InstructionValidator
         }
         if (($opcode == "MOVE" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND"
             || $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
-            $opcode == "INT2CHAR" || $opcode == "STRI2INT" || $opcode == "GETCHAR") && $types[0] == "symb") {
+            $opcode == "INT2CHAR" || $opcode == "STRI2INT" || $opcode == "GETCHAR" ||
+            $opcode == "CONCAT") && $types[0] == "symb") {
             $types[0] = "var";
         }
 

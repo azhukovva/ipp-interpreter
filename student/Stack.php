@@ -25,13 +25,11 @@ class Frame implements IStack {
      // adds a variable to the data array
      public function declareVariable(Variable $variable): void {
         $name = $variable->getName();
-
         
         if($this->has($name)) {
             fwrite(STDERR, "Variable already exists\n");
             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR);
         }
-
         $this->data[$name] = $variable;
     }
 
@@ -62,7 +60,7 @@ class Stack implements IStack {
 
     public function declareVariable(Variable $variable): void {
         $scope = $variable->getScope();
- 
+
         switch($scope) {
             case "GF":
                 $this->gframe->declareVariable($variable);
@@ -88,7 +86,7 @@ class Stack implements IStack {
                 break;
             default:
                 //REVIEW error: unexpected scope
-                print("Unexpected scope: $scope\n");
+                fwrite(STDERR, "Unexpected scope: $scope\n");
                 HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
         }
     }
@@ -96,6 +94,7 @@ class Stack implements IStack {
     public function getVariable(Variable $variable): Variable {
         $name = $variable->getName();
         $scope = $variable->getScope();
+
 
         switch($scope) {
             case "GF":

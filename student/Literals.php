@@ -84,6 +84,7 @@ class Variable extends Symbol
 
         if (!$success) {
             //REVIEW error
+            fwrite(STDERR, "ERROR: Invalid variable name\n");
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
         }
         return $success;
