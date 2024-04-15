@@ -10,6 +10,7 @@ use IPP\Student\Literals\Symbol;
 use IPP\Student\Literals\Variable;
 use IPP\Core\ReturnCode;
 
+use function PHPSTORM_META\type;
 
 class Interpreter extends AbstractInterpreter
 {
@@ -161,8 +162,8 @@ class Interpreter extends AbstractInterpreter
                             fwrite(STDERR, "ERROR: Invalid argument type for CALL instruction. Expected 'label'\n");
                             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
                         }
-                        print_r($labels);
-                        if (!isset($this->labels[$label])) {
+                   
+                        if (!isset($labels[$label])) {
                             fwrite(STDERR, "ERROR: Label not found\n");
                             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
                         }
@@ -485,8 +486,8 @@ class Interpreter extends AbstractInterpreter
                                 $value = $symbol1->getValue() . $symbol2->getValue();
                                 break;
                             case "GETCHAR":
-                                //TODO - to chekType function
-                                if ($symbol1->getType() !== "int" || $symbol2->getType() !== "string") {
+                                if ($symbol1->getType() !== "string" || $symbol2->getType() !== "int") {
+
                                     fwrite(STDERR, "ERROR: Invalid operand type\n");
                                     HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                                 }
@@ -497,12 +498,12 @@ class Interpreter extends AbstractInterpreter
                                     fwrite(STDERR, "ERROR: Invalid index or string length\n");
                                     HelperFunctions::validateErrorCode(ReturnCode::STRING_OPERATION_ERROR); // Error code 58
                                 }
-                                $char = mb_substr($string, $index, 1);
+                                $value = mb_substr($string, $index, 1);
                                 break;
                             case "SETCHAR":
 
                                 if ($symbol1->getType() !== "int" || $symbol2->getType() !== "string") {
-                                    fwrite(STDERR, "ERROR: Invalid operand type\n");
+                                    fwrite(STDERR, "ERROR: Invalid operand type \n");
                                     HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                                 }
 
@@ -530,6 +531,9 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+                        $typeSymb = $symbol->getType();
+
                         if ($typeSymb !== "string") {
                             fwrite(STDERR, "ERROR: Invalid operand type. Must be 'string'\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
@@ -537,10 +541,8 @@ class Interpreter extends AbstractInterpreter
 
                         $variable = $this->stack->getVariable(new Variable($name));
 
-                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
-                        $value = $symbol->getValue();
-                        $length = mb_strlen($value);
+                        $length = mb_strlen($valueSymb);
 
                         $variable->assign("int", $length);
                     }
@@ -552,16 +554,29 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
-                        if ($symbol === null) {
-                            $type = "";
-                        } else {
+
+
+                        // Dynamically determine the type of the symbol
+                        if ($typeSymb === "var") {
+                            $symbol = $this->getSymbol($typeSymb, $valueSymb);
                             $type = $symbol->getType();
+                        } else {
+
+                            // For constants, the type is the same as the type specifier
+                            $type = $typeSymb;
                         }
 
-                        $this->stack->declareVariable(new Variable($var));
-                        $this->stack->getVariable(new Variable($var))->assign("string", $type);
+                        if ($type === null) {
+                            // Handle the case where the type could not be determined
+                            $type = "";
+                        }
+
+                        // Store the type in the specified variable
+
+                        $variable = $this->stack->getVariable(new Variable($name));
+                        $variable->assign("string", $type);
+                        break;
                     }
 
 
@@ -659,17 +674,6 @@ class Interpreter extends AbstractInterpreter
                             'instructionsExecuted' => $this->instructionCounter,
                         ];
                     }
-                    // Access each item inside the loop
-                    // echo "Opcode: " . $item['opcode'] . "\n";
-                    // echo "Order: " . $item['order'] . "\n";
-
-                    // // Access arguments array
-                    // foreach ($item['arguments'] as $argName => $argValue) {
-                    //     echo "Argument $argName: " . $argValue[0] . " - " . $argValue[1] . "\n";
-                    // }
-
-                    // Add more processing as needed...
-
             }
             $this->instructionCounter++;
 

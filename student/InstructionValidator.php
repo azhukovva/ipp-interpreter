@@ -220,7 +220,7 @@ class InstructionValidator
                 $opcode == "GETCHAR" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND" || 
                 $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
                 $opcode == "INT2CHAR" || $opcode == "STRI2INT" ||
-                $opcode == "PUSHS" || $opcode == "EXIT" || $opcode == "CONCAT"
+                $opcode == "PUSHS" || $opcode == "EXIT" || $opcode == "CONCAT" || $opcode == "TYPE"
             ) {
                 for ($i = 0; $i < count($types); $i++) {
                     //REVIEW - $types[$i] == "string"
@@ -233,7 +233,7 @@ class InstructionValidator
         if (($opcode == "MOVE" || $opcode == "SETCHAR" || $opcode == "NOT" || $opcode == "AND"
             || $opcode == "LT" || $opcode == "GT" || $opcode == "EQ" ||
             $opcode == "INT2CHAR" || $opcode == "STRI2INT" || $opcode == "GETCHAR" ||
-            $opcode == "CONCAT") && $types[0] == "symb") {
+            $opcode == "CONCAT" || $opcode == "TYPE") && $types[0] == "symb") {
             $types[0] = "var";
         }
 
@@ -258,9 +258,9 @@ class InstructionValidator
 
 
         if ($types != $expectedTypes) {
-            print_r($types);
-            print_r(" --- \n");
-            print_r($expectedTypes);
+            // print_r($types);
+            // print_r(" --- \n");
+            // print_r($expectedTypes);
             fwrite(STDERR, "ERROR: Invalid argument typeee \n");
             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
