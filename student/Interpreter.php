@@ -72,37 +72,59 @@ class Interpreter extends AbstractInterpreter
         $instructions = ParserXML::parseXML($dom);
         InstructionValidator::validate($instructions);
 
+        // Sort instructions by order
+        usort($instructions, function($a, $b) {
+            $orderA = (int)$a["order"];
+            $orderB = (int)$b["order"];
+        
+            if ($orderA == $orderB) {
+                return 0;
+            }
+            return ($orderA < $orderB) ? -1 : 1;
+        });
+
         // Get all LABEL instructions
         $labelInstructions = array_filter($instructions, function ($item) {
             return $item["opcode"] == "LABEL";
         });
+        
+        $labelKeys = array();
+        $this->labels = array_map(function ($item, $i) use (&$labelKeys) {
 
-        $labels = array_map(function ($item) {
-
-            $order = $item['order'];
             $arguments = $item['arguments'];
 
             ["arg1" => [0 => $type, 1 => $labelKey]] = $arguments;
 
-            return [
-                $labelKey => $order
-            ];
-        }, $labelInstructions);
+            if(in_array($labelKey, $labelKeys)){
+                fwrite(STDERR, "ERROR: Label was defined twice\n");
+                HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
+            }
 
-        $labels = array_reduce($labels, function ($carry, $item) {
+            $labelKeys[] = $labelKey;
+            return [
+                $labelKey => $i
+            ];
+        }, $labelInstructions, array_keys($labelInstructions));
+
+        $this->labels = array_reduce($this->labels, function ($carry, $item) {
             return array_merge($carry, $item);
         }, []);
 
+        $i = 0;
+        // print_r($this->labels);
         // Iterate over the array using foreach loop
-        for ($i = 0; $i < count($instructions); $i++) {
+        while ($i < count($instructions)) {
+            $is_jump = false;
+            
             $item = $instructions[$i];
-
 
             $opcode = $item['opcode'];
             $order = $item['order'];
             $arguments = $item['arguments'];
 
-            switch ($opcode) {
+            // print("$i $opcode\n");
+
+            switch (strtoupper($opcode)) {
                 case "MOVE": {
                         [
                             "arg1" => [1 => $arg],
@@ -158,20 +180,23 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "CALL": {
                         ["arg1" => [0 => $type, 1 => $label]] = $arguments;
+                        
                         if ($type !== 'label') {
                             fwrite(STDERR, "ERROR: Invalid argument type for CALL instruction. Expected 'label'\n");
                             HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
                         }
                    
-                        if (!isset($labels[$label])) {
+                        if (!isset($this->labels[$label])) {
                             fwrite(STDERR, "ERROR: Label not found\n");
                             HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
                         }
 
                         // Save the current position to the call stack
-                        $this->callStack[] = $this->instructionCounter + 1;
+                        array_push($this->callStack, $i);
                         // Jump to the label
-                        $this->instructionCounter = $this->labels[$label];
+                        // $this->instructionCounter = $this->labels[$label] + 1;
+                        $i = $this->labels[$label];
+
                         break;
                     }
                 case "RETURN": {
@@ -181,7 +206,7 @@ class Interpreter extends AbstractInterpreter
                         }
 
                         // Return to the last position
-                        $this->instructionCounter = array_pop($this->callStack);
+                        $i = array_pop($this->callStack);
                         break;
                     }
 
@@ -228,7 +253,7 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-
+                        
                         if ($symbol1->getType() !== "int" || $symbol2->getType() !== "int") {
                             fwrite(STDERR, "ERROR: Invalid operand type\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
@@ -376,14 +401,15 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-                        if ($typeSymb !== "int") {
+                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
+
+                        if ($symbol->getType() !== "int") {
+
                             fwrite(STDERR, "ERROR: Must be int in the second argument\n");
                             HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
 
                         $variable = $this->stack->getVariable(new Variable($name));
-
-                        $symbol = $this->getSymbol($typeSymb, $valueSymb);
 
                         $value = $symbol->getValue();
 
@@ -404,14 +430,12 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-
-                        if ($typeSymb1 !== "string" || $typeSymb2 !== "int") {
-                            $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
-                            if (is_int($symbol2->getValue())) {
-                            } else {
-                                fwrite(STDERR, "ERROR: Invalid argument type\n");
-                                HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
-                            }
+                        $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
+                        $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
+                        
+                        if ($symbol1->getType() !== "string" || $symbol2->getType() !== "int") {
+                            fwrite(STDERR, "ERROR: Invalid argument type\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 53
                         }
 
                         $variable = $this->stack->getVariable(new Variable($name)); // for unicode value
@@ -437,14 +461,15 @@ class Interpreter extends AbstractInterpreter
 
                 case "READ": {
                         [
-                            "arg1" => [0 => $type, 1 => $var]
+                            "arg1" => [0 => $type, 1 => $var],
+                            "arg2" => [0 => $type, 1 => $typeValue]
 
                         ] = $arguments;
 
                         $variable = $this->stack->getVariable(new Variable($var));
 
                         $input = $this->input->readString();
-                        $variable->assign($type, $input);
+                        $variable->assign($typeValue, $input);
 
                         break;
                     }
@@ -453,12 +478,15 @@ class Interpreter extends AbstractInterpreter
                             "arg1" => [0 => $type, 1 => $value]
 
                         ] = $arguments;
-
-                        $value = str_replace('\032', ' ', $value);
-                        $value = str_replace('\010', "\n", $value);
-
+                        
+                        
                         $symbol = $this->getSymbol($type, $value);
-                        echo $symbol->getValue();
+                        
+                        $value = $symbol->getValue();
+                        $value = preg_replace('/\\\032/', ' ', $value);
+                        $value = preg_replace('/\\\010/', "\n", $value);
+                        
+                        echo $value;
 
                         break;
                     }
@@ -586,11 +614,13 @@ class Interpreter extends AbstractInterpreter
                             "arg1" => [0 => $typeLabel, 1 => $nameLabel],
                         ] = $arguments;
 
-                        if (isset($this->labels[$nameLabel])) {
-                            fwrite(STDERR, "ERROR: Label already exists\n");
-                            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
-                        }
-                        $this->labels[$nameLabel] = $this->instructionCounter; // current instruction counter
+
+                        // if (isset($this->labels[$nameLabel])) {
+                        //     fwrite(STDERR, "ERROR: Label already exists\n");
+                        //     HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 52
+                        // }
+                        // $this->labels[$nameLabel] = $this->instructionCounter; // current instruction counter
+                        // break;
                         break;
                     }
 
@@ -601,9 +631,19 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-                        $jumpToIdx = $labels[$labelKey] - 1;
+                        if (!key_exists($labelKey, $this->labels)) {
+                            fwrite(STDERR, "ERROR: Label $labelKey is not defined\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 53
+                            break;
+                        }
+
+                        $jumpToIdx = $this->labels[$labelKey];
+                        $is_jump = true;
 
                         $i = $jumpToIdx;
+
+                        // print_r($this->labels);
+                        // print("$jumpToIdx\n");
 
                         break;
                     }
@@ -617,7 +657,13 @@ class Interpreter extends AbstractInterpreter
 
                         ] = $arguments;
 
-                        $jumpToIdx = $labels[$labelKey] - 1;
+                        if (!key_exists($labelKey, $this->labels)) {
+                            fwrite(STDERR, "ERROR: Label $labelKey is not defined\n");
+                            HelperFunctions::validateErrorCode(ReturnCode::SEMANTIC_ERROR); // 53
+                            break;
+                        }
+
+                        $jumpToIdx = $this->labels[$labelKey];
 
                         $symbol1 = $this->getSymbol($typeSymb1, $valueSymb1);
                         $symbol2 = $this->getSymbol($typeSymb2, $valueSymb2);
@@ -632,12 +678,14 @@ class Interpreter extends AbstractInterpreter
                             case "JUMPIFEQ":
                                 if ($symbol1->getValue() == $symbol2->getValue()) {
                                     $i = $jumpToIdx;
+                                    $is_jump = true;
                                 }
                                 break;
                             case "JUMPIFNEQ":
 
                                 if ($symbol1->getValue() != $symbol2->getValue()) {
                                     $i = $jumpToIdx;
+                                    $is_jump = true;
                                 }
                                 break;
                         }
@@ -653,14 +701,18 @@ class Interpreter extends AbstractInterpreter
 
                         $symbol = $this->getSymbol($typeSymb, $valueSymb);
                         $value = $symbol->getValue();
-
-                        if (!is_int($value) || $value < 0 || $value > 9) {
-                            fwrite(STDERR, "ERROR: Invalid operand value in EXIT\n");
-                            HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
-                        }
+                        $type = $symbol->getType();
 
                         switch ($opcode) {
                             case "EXIT":
+                                if($type !== "int"){
+                                    fwrite(STDERR, "ERROR: Invalid operand value in EXIT\n");
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_TYPE_ERROR); // 57
+                                }
+                                if (!is_int($value) || $value < 0 || $value > 9) {
+                                    fwrite(STDERR, "ERROR: Invalid operand value in EXIT\n");
+                                    HelperFunctions::validateErrorCode(ReturnCode::OPERAND_VALUE_ERROR); // 57
+                                }
                                 return $value;
                             case "DPRINT":
                                 fwrite(STDERR, $value . PHP_EOL);
@@ -669,16 +721,24 @@ class Interpreter extends AbstractInterpreter
                     }
                 case "BREAK": {
                         //TODO 
-                        $state = [
-                            'position' => $this->$item,
-                            'instructionsExecuted' => $this->instructionCounter,
-                        ];
+                        // $state = [
+                        //     'position' => $this->$item,
+                        //     'instructionsExecuted' => $this->instructionCounter,
+                        // ];
+                        break;
                     }
+                default: {
+                    fwrite(STDERR, "Opcode $opcode is unrecognized\n");
+                    HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
+                }
             }
-            $this->instructionCounter++;
+
+            if(!$is_jump){
+                $i++;
+            }
 
             // print_r($this->stack);
-            // print_r($labels);
+            // print_r($this->labels);
         }
 
         return 0;

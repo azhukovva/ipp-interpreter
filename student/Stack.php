@@ -87,7 +87,7 @@ class Stack implements IStack {
             default:
                 //REVIEW error: unexpected scope
                 fwrite(STDERR, "Unexpected scope: $scope\n");
-                HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
     }
 
@@ -120,7 +120,7 @@ class Stack implements IStack {
                 }
             default:
                 fwrite(STDERR, "Unexpected scope: $scope\n");
-                HelperFunctions::validateErrorCode(ReturnCode::FRAME_ACCESS_ERROR);
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
         }
     }
 

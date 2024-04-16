@@ -55,6 +55,12 @@ class InstructionValidator
         foreach ($instructionsArray as $instruction) {
             // ADD LF@result 12 14  
             $opcode = strtoupper($instruction['opcode']);
+            $order = $instruction["order"];
+
+            if(intval($order) <= 0) {
+                fwrite(STDERR, "ERROR: order must be > 0\n");
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE); // 32
+            }
             //REVIEW - $opcode = strtoupper($instruction[0]);
 
             if (!in_array($opcode, $opcode_types)) {
@@ -257,12 +263,12 @@ class InstructionValidator
 
 
 
-        if ($types != $expectedTypes) {
-            // print_r($types);
-            // print_r(" --- \n");
-            // print_r($expectedTypes);
-            fwrite(STDERR, "ERROR: Invalid argument typeee \n");
-            HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
-        }
+        // if ($types != $expectedTypes) {
+        //     print_r($types);
+        //     // print_r(" --- \n");
+        //     print_r($expectedTypes);
+        //     fwrite(STDERR, "ERROR: Invalid argument type \n");
+        //     HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
+        // }
     }
 }

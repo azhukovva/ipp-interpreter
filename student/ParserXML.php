@@ -21,7 +21,8 @@ class ParserXML
             }
 
             if ($childNode->nodeName !== 'instruction') {
-                continue;
+                fwrite(STDERR, "ERROR: Sub-elements of 'program' must be 'instruction'\n");
+                HelperFunctions::validateErrorCode(ReturnCode::INVALID_SOURCE_STRUCTURE);
             }
 
             $opcode = $childNode->getAttribute('opcode');
@@ -77,7 +78,14 @@ class ParserXML
         $arguments = [];
         $argOrder = 1;
 
-        foreach ($instruction->childNodes as $childNode) {
+        $rawArguments = iterator_to_array($instruction->childNodes);
+
+        usort($rawArguments, function($a, $b) {
+            return strcmp($a->tagName, $b->tagName);
+        });
+
+        foreach ($rawArguments as $childNode) {
+            // print_r($childNode);
             if (self::isValidArgument($childNode)) {
                 // Fullfill the argument array with the name, type and value of the argument
                 $argName = $childNode->nodeName;

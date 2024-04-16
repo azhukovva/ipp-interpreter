@@ -1294,7 +1294,7 @@ for ($x = 0; $x < $thread_count; $x++) {
 
                     //get all folders from path for by folder output
                     get_all_test_folders($result, $test_name, $latest_folder, $indent);
-
+                    
                     //Write percentage of tests done to stdout if outfile is present
                     if ($outfile && ($testNO / count($work[$x]) * 100) > $percent) {
                         $percent += $percent_interval;
@@ -1335,6 +1335,8 @@ for ($x = 0; $x < $thread_count; $x++) {
 
                     //get all folders from path for by folder output
                     get_all_test_folders($result,$test_name, $latest_folder, $indent);
+
+                    print("$latest_folder $test_name\n");
 
                     //Write percentage of tests done to stdout if outfile is present
                     if($outfile && ($testNO/$test_count*100)>$percent)

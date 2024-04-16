@@ -16,14 +16,13 @@ class Symbol
     private $value;
     private $type;
 
-    public function __construct(string $type, string $value)
+    public function __construct(string $type, $value)
     {
         $this->type = $type;
 
-
         switch ($this->type) {
             case "int":
-                $this->value = intval($value);
+                $this->value = is_numeric($value) ? intval($value) : null;
                 break;
             case "var":
             case "string":
@@ -31,7 +30,7 @@ class Symbol
                 $this->value = $value;
                 break;
             case "nil":
-                $this->value = "nil";
+                $this->value = "";
                 break;
             default:
                 // REVIEW error type
@@ -63,7 +62,7 @@ class Variable extends Symbol
         $this->name = $parts[1] ?? null;
     }
 
-    public function assign(string $type, string $value)
+    public function assign(string $type, $value)
     {
         parent::__construct($type, $value);
     }
