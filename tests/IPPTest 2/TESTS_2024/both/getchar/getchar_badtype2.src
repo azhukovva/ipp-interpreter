@@ -1,5 +1,0 @@
-.IPPcode24
-
-DEFVAR GF@a
-
-GETCHAR GF@a string@abc bool@true

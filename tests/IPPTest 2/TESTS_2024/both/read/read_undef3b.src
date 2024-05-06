@@ -1,6 +1,0 @@
-.IPPcode24
-
-CREATEFRAME
-PUSHFRAME
-
-READ LF@a string

@@ -1,2 +1,0 @@
-.IPPcode24
-JUMPIFNEQ GF@var label bool@true

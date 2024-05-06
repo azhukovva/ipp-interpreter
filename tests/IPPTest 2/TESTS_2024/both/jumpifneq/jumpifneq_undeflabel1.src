@@ -1,3 +1,0 @@
-.IPPcode24
-
-JUMPIFNEQ aaa int@5 int@5

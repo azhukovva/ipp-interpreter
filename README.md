@@ -1,101 +1,82 @@
-# IPP - PHP Project Core
+**Implementační dokumentace k 2. úloze do IPP 2023/2024**<br/>**Jméno a příjmení:** Aryna Zhukava<br/>**Login:** xzhuka01<br/>
 
-**Authors:** 
-Radim Kocman, 
-Zbyněk Křivka
+## PHP XML interpret [ENG]
+This program is an interpreter for files that contain programs written in the IPPcode24 language in XML representation.
 
-This README describes the basic structure of the project, briefly introduces recommended tools and shows how to set up a suitable development environment.
-Further information can be found in the project specification and in the source code itself.
+### Usage
+```
+php interpret.php [[--source=[SOURCE_FILE]] [--input=[INPUT_FILE]]] [--help|-h]
+```
+`--help ` prints the help message.
+`--source` specifies the path to the XML file that contains the program to be interpreted.
 
-## Basic Structure
+`--input` specifies the path to a file that contains the input data for the program. 
 
-The Core of the project guides the execution of the script, handles the processing of exceptions and solves basic I/O operations. The Student part is thus focused primarily on the interpretation of IPPcode24.
+If source or input were not provided, the interpreter will wait for input from the standard input stream.
 
-The structure of the project is as follows:
-- `core/` - This directory contains all Core classes from the namespace `\IPP\Core`. Files in this directory should not be modified.
-- `student/` - This directory should contain all Student classes, and only its content will be submitted as an archive for evaluation. All Student classes should be in the namespace `\IPP\Student`.
-- `interpret.php` - This file initializes the script environment and serves as an entry point to the object-oriented part of the program. This file should not be modified.
-- other directories and files are related to the tools described later
 
-You should not modify any files from the Core namespace. However, you are free to extend these classes in the Student namespace and modify their behavior. You should study the code of Core classes to see how they work, and how they can be used and extended. For example, see notes in the Engine class.
+### XML Format
+The input XML file must conform to the following format:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode24">
+    <instruction order="[ORDER]" opcode="[OPCODE]">
+        <arg1 type="[TYPE]">[VALUE]</arg1>
+        <arg2 type="[TYPE]">[VALUE]</arg2>
+        <arg3 type="[TYPE]">[VALUE]</arg3>
+    </instruction>
+    ...
+</program>
+```
 
-## About Tools
+The program element must have a `language` attribute with the value *IPPcode24*.
 
-This is a brief overview of tools recommended for the project. It is not required to install and use every tool mentioned here. 
+Each instruction element represents a single instruction in the program, and must have the following attributes:
 
-### Text Editor
+`order`: an integer representing the order of the instruction in the program
+`opcode`: a string representing the opcode of the instruction
 
-Generally, it is possible to use any text editor of your choice.
-However, we highly recommend to use editors that are able to analyze PHP code and assist you with code hints and code completion.
-This is not just useful but almost essential for object-oriented programming that splits code into many separate files.
+Each instruction element may have up to 3 arg elements, each with the following attributes:
 
-We can recommend Visual Studio Code (https://code.visualstudio.com/) as a modern text editor which also offers additional useful capabilities such as remote development via SSH or local development in a consistent environment with development containers.
+`type`: a string representing the type of the argument ("int", "string", "bool", "nil", "var", "type" or "nil")
+`value`: the value of the argument, represented as a string
 
-Recommended VS Code extensions:
-- PHP Intelephense - for better PHP analysis and hinting
-- PHP Debug - for PHP debugging with Xdebug
-- Code Spell Checker - for basic spell checking (Czech is also supported as an additional extension)
-- Remote - SSH - for remote development via SSH
-- Dev Containers - for local development in containers
 
-### Composer
+### Implementation
 
-Composer (https://getcomposer.org/) is a very popular tool for dependency management in PHP. In this project, we use it very lightly just to define autoloading compliant with PSR-4 (https://www.php-fig.org/psr/psr-4/) and to handle two development dependencies. If we allow any additional libraries, they will be also managed with this tool.
+This class implements an interpreter for a custom instruction set. It reads an XML representation of instructions, executes them, and performs various operations based on the instructions.
 
-To avoid complications with the installation in different environments, we have included this tool into the project as `composer.phar` that can be run as a regular script in PHP. Additionally, there is `composer.json` that defines autoloading and dependencies and `composer.lock` that holds precise versions of installed libraries.
+#### Idea
+Since the interpret had to be implemented in Python, I have decided to stick with OOP approach as much as it was possible for me.
 
-With the command `install` this tool creates `vendor` directory with required files.
+I divided task into smaller subtasks:
+- Handle options, input and basic output
+- Parse XML using [ETree](https://docs.python.org/3/library/xml.etree.elementtree.html).
+- Implement types using classes. (Var is subset for Symb)
+- Implement data stack, frame stack and call stack.
+- Create error handling mechanism, that is native to Python.
+- Implement static semantic analysis, variable checking. Find all the labels that are being used in the code.
+- Implement instructions and operations. Start testing.
 
-### PHPStan
+For most subtasks was created its class that would
+implement all the necessary features in order to work correctly.
 
-PHPStan (https://phpstan.org/) is a well-established tool for static analysis of PHP code. It can find errors in your code without actually running it. When set to higher rule levels, it also forces programmers to properly annotate and type hint their code. This is beneficial not just for the static analysis but also for the understandability of your code in general. This is especially true for object-oriented programming, because without types editors are not able to properly assist with code hints and code completion.
+In the next sections I will note some of these classes and approaches I followed to ease development.
 
-In newer versions of PHP, it is possible to write many types natively in the code. However, there are still situations in which types cannot be specified precisely in the native way (such as arrays). In these cases, you can write the precise type as a PHPDoc comment (see https://phpstan.org/user-guide/troubleshooting-types).
+#### Error handling
+Interpret has its own error codes and messages that needs to be shown to a user in some error cases.
 
-The configuration of PHPStan is defined in `phpstan.neon`. You can run the static analysis with the command `vendor/bin/phpstan` (or `php8.3 vendor/bin/phpstan` for Merlin). PHPStan cache is stored in `tmp` directory.
+I handle it in a HelperFunctions class through the function validateErrorCode and I use the returnCodes from a given ipp\core.
 
-### Docker
 
-Docker (https://www.docker.com/) represents an ecosystem of tools that allow users to run isolated (mostly Linux-based) containers in the large variety of environments. For the purpose of this project, we are interested only with Docker Desktop (https://www.docker.com/products/docker-desktop/) as a prerequisite for Development Containers.
+#### ParserXML
+For XML parsing interpret is using not only ETree, that I mentioned earlier, but also class `Parser`. It's made to analyze correctness and validity of a language hidden behind XML representation (IFJcode23).
 
-### Development Containers
+When implementing this class, I have noticed that most of its subclasses were sharing the same idea but with different functionalit, so I decided to created [abstract](https://docs.python.org/3/library/abc.html) class `_GenericParseType`.
 
-Development Containers (https://containers.dev/) is an open specification that combines docker containers with text editors to create seamless and consistent full-featured development environments. 
-For VS Code, you can use the following detailed guide: https://code.visualstudio.com/docs/devcontainers/containers.
+#### Types
 
-The configuration of a development container suitable for this project is located in `.devcontainer` directory. There is also a launch configuration for the debug extension in `.vscode` directory.
+In interpret `Var` literal is a subset for `Symb`. To implement such behaviour I have used inheritance (see diagram).
 
-## Development Environments
 
-There are multiple viable options when it comes to a suitable development environment for this project. Choose one that fits you the most.
 
-### Option 1: Development Container
-
-It is possible to use the prepared development container to do the development locally in an isolated environment.
-Inside the container, VS Code will automatically install all recommended extensions and resolve dependencies. Xdebug will be also ready for use.
-
-Steps for VS Code:
-- follow the installation steps in https://code.visualstudio.com/docs/devcontainers/containers until you have the Dev Containers extension prepared
-- open the project directory in VS Code
-- run the command "Dev Containers: Reopen in Container"
-- you should be now able to use a terminal in VS Code to execute commands in the container
-- run `php interpret.php --help` to try the project execution
-
-### Option 2: Merlin
-
-It is possible to do the whole development on the student server Merlin.
-
-Until recently, it was also possible to easily use the remote development capabilities of VS Code on Merlin. However, VS Code version >= 1.86 now requires glibc >= 2.28, and Merlin does not meet this requirement.
-It is still possible to use the older version of VS Code, but you should use it in a portable mode or disable updates. For more info see:
-https://code.visualstudio.com/docs/remote/faq#_can-i-run-vs-code-server-on-older-linux-distributions
-
-Steps for VS Code 1.85:
-- follow https://code.visualstudio.com/docs/remote/ssh until you successfully connect VS Code and your project directory on Merlin
-- you should be now able to use a terminal in VS Code to execute commands on Merlin
-- run `php8.3 composer.phar install` to install dependencies
-- run `php8.3 interpret.php --help` to try the project execution
-- optionally install other recommended VS Code extensions
-
-### Option 3: Custom
-
-Of course, it is also possible to install PHP directly on your main system or do the development in another custom way. However, in these cases, make sure that the result also works on Merlin. The configuration of PHP can affect the behavior of the script.

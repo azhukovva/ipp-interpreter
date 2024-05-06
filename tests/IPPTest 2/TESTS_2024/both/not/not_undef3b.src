@@ -1,6 +1,0 @@
-.IPPcode24
-
-CREATEFRAME
-PUSHFRAME
-
-NOT LF@a bool@false

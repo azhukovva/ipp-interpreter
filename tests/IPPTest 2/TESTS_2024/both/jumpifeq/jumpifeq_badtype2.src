@@ -1,7 +1,0 @@
-.IPPcode24
-
-DEFVAR GF@a
-
-LABEL aaa
-
-JUMPIFEQ aaa int@40 bool@true
